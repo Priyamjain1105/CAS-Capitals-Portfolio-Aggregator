@@ -1,0 +1,5 @@
+flask-sqlalchemy
+pymysql
+flask-migrate
+flask-login
+flask-bcrypt
