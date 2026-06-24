@@ -16,7 +16,7 @@
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between h-16 items-center">
 
-                <div class="flex items-center space-x-3">
+                <a href="{{ url_for('home') }}" class="flex items-center space-x-3 hover:opacity-90 transition-all cursor-pointer">
                     <div class="bg-blue-600 text-white p-2 rounded-lg flex items-center justify-center shadow-sm">
                         <i class="fa-solid fa-building-columns text-lg"></i>
                     </div>
@@ -24,7 +24,7 @@
                         <span class="text-lg font-bold text-slate-900 tracking-tight block">CAS Capitals</span>
                         <span class="text-xs text-slate-500 font-medium block -mt-1">Portfolio Aggregator</span>
                     </div>
-                </div>
+                </a>
 
                 <nav class="hidden md:flex space-x-6 lg:space-x-8 h-full">
                     <a href="{{ url_for('home') }}"

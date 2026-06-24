@@ -6,11 +6,52 @@
 <!-- Include Chart.js via CDN -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
-    .kpi-card {
-        transition: all 0.2s ease-in-out;
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
     }
+    
+    @keyframes scaleIn {
+        from {
+            opacity: 0;
+            transform: scale(0.97);
+        }
+        to {
+            opacity: 1;
+            transform: scale(1);
+        }
+    }
+
+    .fade-in-card {
+        opacity: 0;
+        animation: fadeInUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+    
+    .delay-1 { animation-delay: 0.05s; }
+    .delay-2 { animation-delay: 0.1s; }
+    .delay-3 { animation-delay: 0.15s; }
+    .delay-4 { animation-delay: 0.2s; }
+    .delay-5 { animation-delay: 0.25s; }
+    .delay-6 { animation-delay: 0.3s; }
+
+    .kpi-card {
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
     .kpi-card:hover {
-        transform: translateY(-2px);
+        transform: translateY(-4px) scale(1.01);
+        box-shadow: 0 12px 24px -10px rgba(37, 99, 235, 0.1);
+        border-color: rgba(37, 99, 235, 0.3);
+    }
+
+    .animate-scale-in {
+        animation: scaleIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
     }
 </style>
 {% endblock %}
@@ -18,7 +59,7 @@
 {% block content %}
 <div class="space-y-8">
     <!-- Title Section -->
-    <section class="flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0">
+    <section class="flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0 fade-in-card delay-1">
         <div>
             <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Analytical Core</span>
             <h1 class="text-2xl md:text-3xl font-bold text-slate-900 flex items-center space-x-3">
@@ -29,10 +70,11 @@
                 Real-time parsed metrics, execution win-rates, and risk analytics for the active session.
             </p>
         </div>
-        
+
         <div>
             {% if aggregate %}
-            <button id="trigger-ai-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm rounded-xl px-5 py-3 transition-all flex items-center space-x-2 shadow-xs hover:shadow-md cursor-pointer">
+            <button id="trigger-ai-btn"
+                class="bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm rounded-xl px-5 py-3 transition-all flex items-center space-x-2 shadow-xs hover:shadow-md cursor-pointer">
                 <i class="fa-solid fa-brain"></i>
                 <span>Trigger AI Behavioral Analysis</span>
             </button>
@@ -53,26 +95,29 @@
             </p>
         </div>
         <div>
-            <a href="{{ url_for('upload') }}" class="inline-flex items-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl px-5 py-3 transition-all">
+            <a href="{{ url_for('upload') }}"
+                class="inline-flex items-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl px-5 py-3 transition-all">
                 <i class="fa-solid fa-upload"></i>
                 <span>Upload Trades CSV</span>
             </a>
         </div>
     </div>
     {% else %}
-    
+
     <!-- KPI Summary Grid -->
-    <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+    <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 fade-in-card delay-2">
         <!-- Net P&L Card -->
         <div class="kpi-card bg-white border border-slate-200 rounded-xl p-5 shadow-xs flex flex-col justify-between">
             <div class="flex items-center justify-between">
                 <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Net P&L</span>
-                <span class="h-8 w-8 rounded-lg flex items-center justify-center {% if aggregate.net_pnl >= 0 %}bg-emerald-50 text-emerald-600{% else %}bg-red-50 text-red-600{% endif %}">
+                <span
+                    class="h-8 w-8 rounded-lg flex items-center justify-center {% if aggregate.net_pnl >= 0 %}bg-emerald-50 text-emerald-600{% else %}bg-red-50 text-red-600{% endif %}">
                     <i class="fa-solid fa-indian-rupee-sign"></i>
                 </span>
             </div>
             <div class="mt-4">
-                <h3 class="text-2xl font-extrabold {% if aggregate.net_pnl >= 0 %}text-emerald-700{% else %}text-red-700{% endif %}">
+                <h3
+                    class="text-2xl font-extrabold {% if aggregate.net_pnl >= 0 %}text-emerald-700{% else %}text-red-700{% endif %}">
                     {{ "₹{:,.2f}".format(aggregate.net_pnl) }}
                 </h3>
                 <p class="text-[11px] text-slate-400 font-semibold mt-1">
@@ -141,41 +186,48 @@
     </section>
 
     <!-- Additional KPI Grid -->
-    <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+    <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 fade-in-card delay-3">
         <div class="bg-white border border-slate-200 rounded-xl p-4 shadow-xs flex items-center justify-between">
             <div>
                 <span class="text-[10px] font-bold text-slate-400 uppercase">Avg Winning Trade</span>
-                <h4 class="text-base font-extrabold text-emerald-700 mt-0.5">{{ "₹{:,.2f}".format(aggregate.avg_win) }}</h4>
+                <h4 class="text-base font-extrabold text-emerald-700 mt-0.5">{{ "₹{:,.2f}".format(aggregate.avg_win) }}
+                </h4>
             </div>
             <i class="fa-solid fa-arrow-trend-up text-emerald-500 text-lg"></i>
         </div>
         <div class="bg-white border border-slate-200 rounded-xl p-4 shadow-xs flex items-center justify-between">
             <div>
                 <span class="text-[10px] font-bold text-slate-400 uppercase">Avg Losing Trade</span>
-                <h4 class="text-base font-extrabold text-red-700 mt-0.5">{{ "₹{:,.2f}".format(aggregate.avg_loss) }}</h4>
+                <h4 class="text-base font-extrabold text-red-700 mt-0.5">{{ "₹{:,.2f}".format(aggregate.avg_loss) }}
+                </h4>
             </div>
             <i class="fa-solid fa-arrow-trend-down text-red-500 text-lg"></i>
         </div>
         <div class="bg-white border border-slate-200 rounded-xl p-4 shadow-xs flex items-center justify-between">
             <div>
                 <span class="text-[10px] font-bold text-slate-400 uppercase">Max Win Size</span>
-                <h4 class="text-base font-extrabold text-emerald-700 mt-0.5">{{ "₹{:,.2f}".format(aggregate.max_win) }}</h4>
+                <h4 class="text-base font-extrabold text-emerald-700 mt-0.5">{{ "₹{:,.2f}".format(aggregate.max_win) }}
+                </h4>
             </div>
             <i class="fa-solid fa-circle-chevron-up text-emerald-600 text-lg"></i>
         </div>
         <div class="bg-white border border-slate-200 rounded-xl p-4 shadow-xs flex items-center justify-between">
             <div>
                 <span class="text-[10px] font-bold text-slate-400 uppercase">Max Loss Size</span>
-                <h4 class="text-base font-extrabold text-red-700 mt-0.5">{{ "₹{:,.2f}".format(aggregate.max_loss) }}</h4>
+                <h4 class="text-base font-extrabold text-red-700 mt-0.5">{{ "₹{:,.2f}".format(aggregate.max_loss) }}
+                </h4>
             </div>
             <i class="fa-solid fa-circle-chevron-down text-red-600 text-lg"></i>
         </div>
     </section>
 
     <!-- AI Behavioral Analysis Panel (Initially Hidden) -->
-    <section id="ai-panel" class="hidden bg-slate-900 text-slate-100 border border-slate-800 rounded-2xl p-6 md:p-8 relative overflow-hidden transition-all duration-300">
-        <div class="absolute top-0 right-0 -mt-10 -mr-10 w-40 h-40 bg-blue-500/10 rounded-full blur-2xl pointer-events-none"></div>
-        
+    <section id="ai-panel"
+        class="hidden bg-slate-900 text-slate-100 border border-slate-800 rounded-2xl p-6 md:p-8 relative overflow-hidden transition-all duration-300 animate-scale-in">
+        <div
+            class="absolute top-0 right-0 -mt-10 -mr-10 w-40 h-40 bg-blue-500/10 rounded-full blur-2xl pointer-events-none">
+        </div>
+
         <div class="flex items-center justify-between border-b border-slate-800 pb-4 mb-6">
             <div class="flex items-center space-x-3">
                 <span class="h-9 w-9 bg-blue-500/20 text-blue-400 rounded-lg flex items-center justify-center text-lg">
@@ -183,17 +235,22 @@
                 </span>
                 <div>
                     <h2 class="text-lg font-bold text-white">Claude AI Behavioral Feedback</h2>
-                    <p class="text-xs text-slate-400 font-medium">Cognitive bias grading & trading psychology diagnostic</p>
+                    <p class="text-xs text-slate-400 font-medium">Cognitive bias grading & trading psychology diagnostic
+                    </p>
                 </div>
             </div>
-            <button id="close-ai-btn" class="text-slate-400 hover:text-white p-1 hover:bg-slate-800 rounded-lg transition-colors cursor-pointer">
+            <button id="close-ai-btn"
+                class="text-slate-400 hover:text-white p-1 hover:bg-slate-800 rounded-lg transition-colors cursor-pointer">
                 <i class="fa-solid fa-xmark text-lg"></i>
             </button>
         </div>
 
         <div id="ai-loading" class="hidden py-8 text-center space-y-4">
-            <div class="inline-block animate-spin rounded-full h-8 w-8 border-2 border-t-blue-500 border-r-transparent border-b-transparent border-l-transparent"></div>
-            <p class="text-xs text-slate-400 font-semibold tracking-wider uppercase">Evaluating trading heuristics...</p>
+            <div
+                class="inline-block animate-spin rounded-full h-8 w-8 border-2 border-t-blue-500 border-r-transparent border-b-transparent border-l-transparent">
+            </div>
+            <p class="text-xs text-slate-400 font-semibold tracking-wider uppercase">Evaluating trading heuristics...
+            </p>
         </div>
 
         <div id="ai-content" class="space-y-6">
@@ -205,7 +262,8 @@
                         <span id="discipline-score">0/100</span>
                     </div>
                     <div class="w-full bg-slate-700 h-2 rounded-full overflow-hidden">
-                        <div id="discipline-bar" class="bg-blue-500 h-full rounded-full transition-all duration-1000" style="width: 0%"></div>
+                        <div id="discipline-bar" class="bg-blue-500 h-full rounded-full transition-all duration-1000"
+                            style="width: 0%"></div>
                     </div>
                 </div>
                 <div class="bg-slate-800/50 border border-slate-800 rounded-xl p-4">
@@ -214,7 +272,8 @@
                         <span id="risk-score">0/100</span>
                     </div>
                     <div class="w-full bg-slate-700 h-2 rounded-full overflow-hidden">
-                        <div id="risk-bar" class="bg-red-500 h-full rounded-full transition-all duration-1000" style="width: 0%"></div>
+                        <div id="risk-bar" class="bg-red-500 h-full rounded-full transition-all duration-1000"
+                            style="width: 0%"></div>
                     </div>
                 </div>
                 <div class="bg-slate-800/50 border border-slate-800 rounded-xl p-4">
@@ -223,7 +282,9 @@
                         <span id="consistency-score">0/100</span>
                     </div>
                     <div class="w-full bg-slate-700 h-2 rounded-full overflow-hidden">
-                        <div id="consistency-bar" class="bg-emerald-500 h-full rounded-full transition-all duration-1000" style="width: 0%"></div>
+                        <div id="consistency-bar"
+                            class="bg-emerald-500 h-full rounded-full transition-all duration-1000" style="width: 0%">
+                        </div>
                     </div>
                 </div>
             </div>
@@ -270,7 +331,7 @@
     </section>
 
     <!-- Visual Charts Section -->
-    <section class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+    <section class="grid grid-cols-1 lg:grid-cols-2 gap-8 fade-in-card delay-4">
         <!-- Cumulative Returns -->
         <div class="bg-white border border-slate-200 rounded-xl p-6 shadow-xs">
             <div class="flex items-center justify-between mb-4">
@@ -304,8 +365,43 @@
         </div>
     </section>
 
+    <!-- Visual Charts Section 2 -->
+    <section class="grid grid-cols-1 lg:grid-cols-2 gap-8 fade-in-card delay-5">
+        <!-- P&L by Instrument Type -->
+        <div class="bg-white border border-slate-200 rounded-xl p-6 shadow-xs">
+            <div class="flex items-center justify-between mb-4">
+                <div>
+                    <h3 class="text-base font-bold text-slate-900">P&L by Instrument Type</h3>
+                    <p class="text-xs text-slate-400">Distribution of realized returns across asset classes</p>
+                </div>
+                <div class="h-8 w-8 bg-blue-50 text-blue-600 rounded-lg flex items-center justify-center text-sm">
+                    <i class="fa-solid fa-chart-pie"></i>
+                </div>
+            </div>
+            <div class="h-80 w-full relative flex items-center justify-center">
+                <canvas id="instPnLChart"></canvas>
+            </div>
+        </div>
+
+        <!-- P&L by Symbol -->
+        <div class="bg-white border border-slate-200 rounded-xl p-6 shadow-xs">
+            <div class="flex items-center justify-between mb-4">
+                <div>
+                    <h3 class="text-base font-bold text-slate-900">P&L by Contract Symbol</h3>
+                    <p class="text-xs text-slate-400">Realized returns broken down by stock or option contract</p>
+                </div>
+                <div class="h-8 w-8 bg-slate-100 text-slate-700 rounded-lg flex items-center justify-center text-sm">
+                    <i class="fa-solid fa-tags"></i>
+                </div>
+            </div>
+            <div class="h-80 w-full relative">
+                <canvas id="symbolPnLChart"></canvas>
+            </div>
+        </div>
+    </section>
+
     <!-- Positions Listing tables -->
-    <section class="space-y-6">
+    <section class="space-y-6 fade-in-card delay-6">
         <!-- Open Positions -->
         <div class="bg-white border border-slate-200 rounded-xl shadow-xs overflow-hidden">
             <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
@@ -325,7 +421,8 @@
             <div class="overflow-x-auto">
                 <table class="w-full text-left border-collapse text-xs">
                     <thead>
-                        <tr class="bg-slate-50/70 border-b border-slate-200 font-semibold uppercase tracking-wider text-slate-400 text-[10px]">
+                        <tr
+                            class="bg-slate-50/70 border-b border-slate-200 font-semibold uppercase tracking-wider text-slate-400 text-[10px]">
                             <th class="p-4">Symbol</th>
                             <th class="p-4">Instrument</th>
                             <th class="p-4">Net Lot Size</th>
@@ -343,13 +440,15 @@
                                     {% if pos.instrument_type == 'EQ' %}bg-slate-100 text-slate-700
                                     {% elif pos.instrument_type == 'FUT' %}bg-blue-50 text-blue-700
                                     {% else %}bg-purple-50 text-purple-700{% endif %}">
-                                    {{ pos.instrument_type }} {% if pos.strike_price %}({{ pos.strike_price }}){% endif %}
+                                    {{ pos.instrument_type }} {% if pos.strike_price %}({{ pos.strike_price }}){% endif
+                                    %}
                                 </span>
                             </td>
                             <td class="p-4">{{ pos.net_quantity }}</td>
                             <td class="p-4">₹{{ "{:,.2f}".format(pos.entry_price) }}</td>
                             <td class="p-4">₹{{ "{:,.2f}".format(pos.total_buy_value + pos.total_sell_value) }}</td>
-                            <td class="p-4 text-slate-400 font-semibold">{{ pos.open_time.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                            <td class="p-4 text-slate-400 font-semibold">{{ pos.open_time.strftime('%Y-%m-%d %H:%M:%S')
+                                }}</td>
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -377,7 +476,8 @@
             <div class="overflow-x-auto">
                 <table class="w-full text-left border-collapse text-xs">
                     <thead>
-                        <tr class="bg-slate-50/70 border-b border-slate-200 font-semibold uppercase tracking-wider text-slate-400 text-[10px]">
+                        <tr
+                            class="bg-slate-50/70 border-b border-slate-200 font-semibold uppercase tracking-wider text-slate-400 text-[10px]">
                             <th class="p-4">Symbol</th>
                             <th class="p-4">Instrument</th>
                             <th class="p-4">Total Trades</th>
@@ -395,15 +495,18 @@
                                     {% if pos.instrument_type == 'EQ' %}bg-slate-100 text-slate-700
                                     {% elif pos.instrument_type == 'FUT' %}bg-blue-50 text-blue-700
                                     {% else %}bg-purple-50 text-purple-700{% endif %}">
-                                    {{ pos.instrument_type }} {% if pos.strike_price %}({{ pos.strike_price }}){% endif %}
+                                    {{ pos.instrument_type }} {% if pos.strike_price %}({{ pos.strike_price }}){% endif
+                                    %}
                                 </span>
                             </td>
                             <td class="p-4">{{ pos.net_quantity }}</td>
                             <td class="p-4">
                                 <div>Entry: ₹{{ "{:,.2f}".format(pos.entry_price) }}</div>
-                                <div class="text-[10px] text-slate-400">Exit: ₹{{ "{:,.2f}".format(pos.exit_price or 0.0) }}</div>
+                                <div class="text-[10px] text-slate-400">Exit: ₹{{ "{:,.2f}".format(pos.exit_price or
+                                    0.0) }}</div>
                             </td>
-                            <td class="p-4 font-bold {% if pos.realized_pnl >= 0 %}text-emerald-700{% else %}text-red-700{% endif %}">
+                            <td
+                                class="p-4 font-bold {% if pos.realized_pnl >= 0 %}text-emerald-700{% else %}text-red-700{% endif %}">
                                 {{ "₹{:,.2f}".format(pos.realized_pnl) }}
                             </td>
                             <td class="p-4 text-slate-400 font-semibold">
@@ -421,7 +524,7 @@
             {% endif %}
         </div>
     </section>
-    
+
 </div>
 {% endif %}
 {% endblock %}
@@ -433,100 +536,175 @@
         // Load Charts
         const ctxCum = document.getElementById('cumPnLChart').getContext('2d');
         const ctxDaily = document.getElementById('dailyPnLChart').getContext('2d');
-        
-        const labels = {{ chart_labels | tojson }};
-        const dailyNet = {{ chart_daily_net | tojson }};
-        const cumNet = {{ chart_cum_net | tojson }};
 
-        // Cumulative Equity Curve
-        new Chart(ctxCum, {
-            type: 'line',
-            data: {
-                labels: labels,
-                datasets: [{
-                    label: 'Net Returns (₹)',
-                    data: cumNet,
-                    borderColor: '#2563eb',
-                    backgroundColor: 'rgba(37, 99, 235, 0.05)',
-                    borderWidth: 2,
-                    fill: true,
-                    tension: 0.2
-                }]
+        const labels = {{ chart_labels | tojson
+    }};
+    const dailyNet = {{ chart_daily_net | tojson }};
+    const cumNet = {{ chart_cum_net | tojson }};
+
+    // Cumulative Equity Curve
+    new Chart(ctxCum, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Net Returns (₹)',
+                data: cumNet,
+                borderColor: '#2563eb',
+                backgroundColor: 'rgba(37, 99, 235, 0.05)',
+                borderWidth: 2,
+                fill: true,
+                tension: 0.2
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false }
             },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { display: false }
-                },
-                scales: {
-                    x: { grid: { display: false } },
-                    y: { 
-                        grid: { color: '#f1f5f9' },
-                        ticks: {
-                            callback: function(value) { return '₹' + value.toLocaleString(); }
-                        }
+            scales: {
+                x: { grid: { display: false } },
+                y: {
+                    grid: { color: '#f1f5f9' },
+                    ticks: {
+                        callback: function (value) { return '₹' + value.toLocaleString(); }
                     }
                 }
             }
-        });
+        }
+    });
 
-        // Daily Returns Bar Chart
-        new Chart(ctxDaily, {
-            type: 'bar',
-            data: {
-                labels: labels,
-                datasets: [{
-                    label: 'Net P&L (₹)',
-                    data: dailyNet,
-                    backgroundColor: dailyNet.map(val => val >= 0 ? '#10b981' : '#ef4444'),
-                    borderRadius: 4
-                }]
+    // Daily Returns Bar Chart
+    new Chart(ctxDaily, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Net P&L (₹)',
+                data: dailyNet,
+                backgroundColor: dailyNet.map(val => val >= 0 ? '#10b981' : '#ef4444'),
+                borderRadius: 4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false }
             },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { display: false }
-                },
-                scales: {
-                    x: { grid: { display: false } },
-                    y: { 
-                        grid: { color: '#f1f5f9' },
-                        ticks: {
-                            callback: function(value) { return '₹' + value.toLocaleString(); }
-                        }
+            scales: {
+                x: { grid: { display: false } },
+                y: {
+                    grid: { color: '#f1f5f9' },
+                    ticks: {
+                        callback: function (value) { return '₹' + value.toLocaleString(); }
                     }
                 }
             }
-        });
+        }
+    });
 
-        // AI Behavioral Analysis Drawer logic
-        const triggerBtn = document.getElementById('trigger-ai-btn');
-        const closeBtn = document.getElementById('close-ai-btn');
-        const aiPanel = document.getElementById('ai-panel');
-        const aiLoading = document.getElementById('ai-loading');
-        const aiContent = document.getElementById('ai-content');
+    // Instrument P&L Chart (Doughnut)
+    const ctxInst = document.getElementById('instPnLChart').getContext('2d');
+    const instLabels = {{ inst_labels | tojson if inst_labels else[] }};
+    const instValues = {{ inst_values | tojson if inst_values else[] }};
 
-        triggerBtn.addEventListener('click', function () {
-            // Scroll to AI panel smoothly
-            aiPanel.classList.remove('hidden');
-            aiPanel.scrollIntoView({ behavior: 'smooth' });
-            
-            // Show loading
-            aiLoading.classList.remove('hidden');
-            aiContent.classList.add('hidden');
+    new Chart(ctxInst, {
+        type: 'doughnut',
+        data: {
+            labels: instLabels,
+            datasets: [{
+                data: instValues,
+                backgroundColor: [
+                    '#2563eb', // Blue
+                    '#10b981', // Emerald
+                    '#f59e0b', // Amber
+                    '#8b5cf6', // Violet
+                    '#ec4899', // Pink
+                    '#64748b'  // Slate
+                ],
+                borderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'right',
+                    labels: {
+                        boxWidth: 12,
+                        font: { size: 11 }
+                    }
+                }
+            }
+        }
+    });
 
-            // POST to analysis route
-            fetch('/api/llm/advanced-analysis', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
+    // Symbol P&L Chart (Horizontal Bar Chart)
+    const ctxSym = document.getElementById('symbolPnLChart').getContext('2d');
+    const symLabels = {{ sym_labels | tojson if sym_labels else[] }};
+    const symValues = {{ sym_values | tojson if sym_values else[] }};
+
+    new Chart(ctxSym, {
+        type: 'bar',
+        data: {
+            labels: symLabels,
+            datasets: [{
+                label: 'Realized P&L (₹)',
+                data: symValues,
+                backgroundColor: symValues.map(val => val >= 0 ? '#10b981' : '#ef4444'),
+                borderRadius: 4
+            }]
+        },
+        options: {
+            indexAxis: 'y', // Horizontal bars
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false }
+            },
+            scales: {
+                x: {
+                    grid: { color: '#f1f5f9' },
+                    ticks: {
+                        callback: function (value) { return '₹' + value.toLocaleString(); }
+                    }
                 },
-                body: JSON.stringify({
-                    system_prompt: ""
-                })
+                y: {
+                    grid: { display: false }
+                }
+            }
+        }
+    });
+
+    // AI Behavioral Analysis Drawer logic
+    const triggerBtn = document.getElementById('trigger-ai-btn');
+    const closeBtn = document.getElementById('close-ai-btn');
+    const aiPanel = document.getElementById('ai-panel');
+    const aiLoading = document.getElementById('ai-loading');
+    const aiContent = document.getElementById('ai-content');
+
+    triggerBtn.addEventListener('click', function () {
+        // Scroll to AI panel smoothly
+        aiPanel.classList.remove('hidden');
+        aiPanel.scrollIntoView({ behavior: 'smooth' });
+
+        // Show loading
+        aiLoading.classList.remove('hidden');
+        aiContent.classList.add('hidden');
+
+        // POST to analysis route
+        fetch('/api/llm/advanced-analysis', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                system_prompt: ""
             })
+        })
             .then(res => res.json())
             .then(data => {
                 aiLoading.classList.add('hidden');
@@ -534,7 +712,7 @@
 
                 if (data.status === 'success') {
                     const analysis = data.llm_analysis;
-                    
+
                     // Scores
                     document.getElementById('discipline-score').innerText = analysis.grading_and_feedback.discipline_score + '/100';
                     document.getElementById('discipline-bar').style.width = analysis.grading_and_feedback.discipline_score + '%';
@@ -601,11 +779,11 @@
                 aiLoading.classList.add('hidden');
                 console.error("AI analysis error:", err);
             });
-        });
+    });
 
-        closeBtn.addEventListener('click', function () {
-            aiPanel.classList.add('hidden');
-        });
+    closeBtn.addEventListener('click', function () {
+        aiPanel.classList.add('hidden');
+    });
     });
 </script>
 {% endif %}

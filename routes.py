@@ -290,6 +290,24 @@ def register_routes(app):
         closed_positions = [p for p in positions if p.status == 'closed']
         open_positions = [p for p in positions if p.status == 'open']
 
+        # Aggregate P&L by Instrument Type
+        inst_pnl = {}
+        for pos in closed_positions:
+            itype = pos.instrument_type or 'EQ'
+            inst_pnl[itype] = inst_pnl.get(itype, 0.0) + pos.realized_pnl
+        inst_labels = list(inst_pnl.keys())
+        inst_values = list(inst_pnl.values())
+
+        # Aggregate P&L by Symbol
+        symbol_pnl = {}
+        for pos in closed_positions:
+            sym = pos.symbol
+            symbol_pnl[sym] = symbol_pnl.get(sym, 0.0) + pos.realized_pnl
+        # Sort symbols by P&L for plotting
+        sorted_syms = sorted(symbol_pnl.items(), key=lambda x: x[1])
+        sym_labels = [x[0] for x in sorted_syms]
+        sym_values = [x[1] for x in sorted_syms]
+
         return render_template(
             'dashboard.html',
             aggregate=aggregate,
@@ -298,7 +316,11 @@ def register_routes(app):
             open_positions=open_positions,
             chart_labels=chart_labels,
             chart_daily_net=chart_daily_net,
-            chart_cum_net=chart_cum_net
+            chart_cum_net=chart_cum_net,
+            inst_labels=inst_labels,
+            inst_values=inst_values,
+            sym_labels=sym_labels,
+            sym_values=sym_values
         )
 
     @app.route('/pyramiding', methods=['GET'])
