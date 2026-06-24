@@ -1,12 +1,12 @@
 {% extends "base.html" %}
 
-{% block title %}Upload Trade Exports - FamilyVest{% endblock %}
+{% block title %}Upload Trade CSVs - FamilyVest{% endblock %}
 
 {% block head_content %}
 <style>
     .drag-over {
         border-color: #2563eb !important;
-        background-color: #f8fafc !important;
+        background-color: #eff6ff !important;
     }
 </style>
 {% endblock %}
@@ -14,157 +14,150 @@
 {% block content %}
 <div class="space-y-8">
 
-    <div class="flex flex-col space-y-1">
-        <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Data Ingestion Engine</span>
-        <h1 class="text-2xl md:text-3xl font-bold text-slate-900 flex items-center space-x-2">
-            <i class="fa-solid fa-file-import text-blue-600"></i>
-            <span>Import Broker Logs</span>
+    <section class="flex flex-col space-y-1">
+        <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">
+            Data Ingestion Engine
+        </span>
+        <h1 class="text-2xl md:text-3xl font-bold text-slate-900 flex items-center space-x-3">
+            <i class="fa-solid fa-file-csv text-blue-600"></i>
+            <span>Parse Trade CSVs</span>
         </h1>
-        <p class="text-xs md:text-sm text-slate-500 font-medium">
-            Upload raw trade ledger CSV or Excel files. The engine extracts **BUY-side equity trades** and automatically
-            normalizes timestamps, asset tickets, and transaction metrics.
+        <p class="text-sm text-slate-500 font-medium max-w-3xl">
+            Upload one or multiple CSV files. The backend will read and parse them directly in memory without saving
+            them to disk.
         </p>
-    </div>
+    </section>
 
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
 
+        <!-- Upload Form -->
         <div class="lg:col-span-2 space-y-6">
             <div class="bg-white border border-slate-200 rounded-xl p-6 shadow-xs">
 
-                <form action="" method="POST" enctype="multipart/form-data" class="space-y-6" id="upload-form">
+                <!-- Flash Messages -->
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                <div class="space-y-3 mb-6">
+                    {% for category, message in messages %}
+                    <div class="rounded-xl border px-4 py-3 text-sm font-medium
+                                    {% if category == 'success' %}
+                                        bg-emerald-50 border-emerald-200 text-emerald-700
+                                    {% elif category == 'error' %}
+                                        bg-red-50 border-red-200 text-red-700
+                                    {% else %}
+                                        bg-slate-50 border-slate-200 text-slate-700
+                                    {% endif %}">
+                        {{ message }}
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+                {% endwith %}
 
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <label for="family_member"
-                                class="block text-xs font-bold uppercase tracking-wide text-slate-500 mb-2">
-                                <i class="fa-solid fa-user mr-1.5 text-slate-400"></i>Account Owner / Family Member
-                            </label>
-                            <div class="relative">
-                                <select id="family_member" name="family_member" required
-                                    class="w-full bg-slate-50 border border-slate-200 text-slate-800 text-sm font-medium rounded-lg p-2.5 outline-hidden focus:border-blue-500 focus:bg-white transition-all appearance-none">
-                                    <option value="" disabled selected>Select family member...</option>
-                                    <option value="father">Primary (Father)</option>
-                                    <option value="mother">Spouse (Mother)</option>
-                                    <option value="child_1">Child Portfolio Account 1</option>
-                                    <option value="huf">Family HUF / Corporate Entity</option>
-                                </select>
-                                <div
-                                    class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-slate-400">
-                                    <i class="fa-solid fa-chevron-down text-xs"></i>
-                                </div>
-                            </div>
-                        </div>
+                <form action="{{ url_for('upload_file') }}" method="POST" enctype="multipart/form-data"
+                    class="space-y-6" id="upload-form">
 
-                        <div>
-                            <label for="broker_platform"
-                                class="block text-xs font-bold uppercase tracking-wide text-slate-500 mb-2">
-                                <i class="fa-solid fa-building-columns mr-1.5 text-slate-400"></i>Source Broker Platform
-                            </label>
-                            <div class="relative">
-                                <select id="broker_platform" name="broker_platform" required
-                                    class="w-full bg-slate-50 border border-slate-200 text-slate-800 text-sm font-medium rounded-lg p-2.5 outline-hidden focus:border-blue-500 focus:bg-white transition-all appearance-none">
-                                    <option value="" disabled selected>Select brokerage source...</option>
-                                    <option value="zerodha">Zerodha (Console Tradebook)</option>
-                                    <option value="groww">Groww (Transactions Export)</option>
-                                    <option value="icici_direct">ICICI Direct (Gain/Loss Statement)</option>
-                                    <option value="generic">Standardized Generic Template CSV</option>
-                                </select>
-                                <div
-                                    class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-slate-400">
-                                    <i class="fa-solid fa-chevron-down text-xs"></i>
-                                </div>
-                            </div>
-                        </div>
+                    <!-- Optional label -->
+                    <div>
+                        <label for="file_label"
+                            class="block text-xs font-bold uppercase tracking-wide text-slate-500 mb-2">
+                            <i class="fa-solid fa-tag mr-1.5 text-slate-400"></i>
+                            Batch Label (Optional)
+                        </label>
+                        <input type="text" id="file_label" name="file_label" placeholder="e.g. june_family_upload"
+                            value="{{ file_label or '' }}"
+                            class="w-full bg-slate-50 border border-slate-200 text-slate-800 text-sm font-medium rounded-lg px-3 py-2.5 outline-none focus:border-blue-500 focus:bg-white transition-all">
+                        <p class="mt-2 text-xs text-slate-400">
+                            Optional label for this upload batch.
+                        </p>
                     </div>
 
+                    <!-- Multi-file Dropzone -->
                     <div id="dropzone"
-                        class="border-2 border-dashed border-slate-200 rounded-xl p-8 text-center bg-slate-50/50 hover:bg-slate-50 hover:border-blue-400 transition-all cursor-pointer flex flex-col items-center justify-center space-y-3 group">
-                        <input type="file" id="file_input" name="file" accept=".csv, .xlsx, .xls" class="hidden"
+                        class="border-2 border-dashed border-slate-200 rounded-xl p-8 text-center bg-slate-50/60 hover:bg-slate-50 hover:border-blue-400 transition-all cursor-pointer flex flex-col items-center justify-center space-y-4 group">
+                        <input type="file" id="file_input" name="files" accept=".csv,text/csv" class="hidden" multiple
                             required />
 
                         <div
-                            class="h-12 w-12 bg-white rounded-full flex items-center justify-center text-slate-400 border border-slate-100 shadow-xs group-hover:text-blue-600 group-hover:scale-105 transition-all">
+                            class="h-14 w-14 bg-white rounded-full flex items-center justify-center text-slate-400 border border-slate-100 shadow-xs group-hover:text-blue-600 group-hover:scale-105 transition-all">
                             <i class="fa-solid fa-cloud-arrow-up text-xl"></i>
                         </div>
 
                         <div class="space-y-1">
                             <p class="text-sm font-bold text-slate-700">
-                                Drag and drop your raw export file here, or <span
-                                    class="text-blue-600 hover:underline">browse files</span>
+                                Drag and drop one or many CSV files here, or
+                                <span class="text-blue-600 hover:underline">browse files</span>
                             </p>
-                            <p class="text-xs text-slate-400 font-medium">Supports .CSV, .XLS, .XLSX exports up to 15MB
+                            <p class="text-xs text-slate-400 font-medium">
+                                Multiple CSV uploads supported • Parse only, no file storage
                             </p>
                         </div>
 
                         <div id="file-info-box"
-                            class="hidden text-xs bg-blue-50 text-blue-700 font-semibold px-4 py-2 rounded-lg items-center space-x-2 border border-blue-100">
-                            <i class="fa-solid fa-file-csv text-sm"></i>
-                            <span id="selected-file-name">filename.csv</span>
+                            class="hidden w-full max-w-2xl text-xs bg-blue-50 text-blue-700 font-semibold px-4 py-3 rounded-lg border border-blue-100">
+                            <div class="flex items-center space-x-2 mb-2">
+                                <i class="fa-solid fa-file-csv text-sm"></i>
+                                <span id="selected-file-count">0 files selected</span>
+                            </div>
+                            <ul id="selected-file-list" class="space-y-1 text-left text-blue-700"></ul>
                         </div>
                     </div>
 
                     <div class="flex justify-end pt-2">
                         <button type="submit"
-                            class="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm rounded-xl px-6 py-3 transition-colors flex items-center justify-center space-x-2 shadow-xs hover:shadow-md cursor-pointer">
-                            <i class="fa-solid fa-bolt-lightning text-xs"></i>
-                            <span>Execute Extraction Pipeline</span>
+                            class="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm rounded-xl px-6 py-3 transition-all flex items-center justify-center space-x-2 shadow-xs hover:shadow-md cursor-pointer">
+                            <i class="fa-solid fa-bolt text-xs"></i>
+                            <span>Parse CSV Files</span>
                         </button>
                     </div>
 
                 </form>
-
             </div>
         </div>
 
+        <!-- Info Card -->
         <div class="lg:col-span-1 space-y-6">
             <div class="bg-white border border-slate-200 rounded-xl p-6 shadow-xs space-y-4">
                 <h3 class="text-sm font-bold text-slate-900 flex items-center space-x-2">
                     <i class="fa-solid fa-circle-info text-blue-600"></i>
-                    <span>Parsing Requirements</span>
+                    <span>Current Processing Mode</span>
                 </h3>
 
                 <p class="text-xs text-slate-500 font-medium leading-relaxed">
-                    The engine applies programmatic heuristics to identify parameters automatically. To guarantee
-                    structured parsing pipelines, ensure your custom data logs contain these structural keys:
+                    Uploaded CSV files are parsed directly in memory. No file is stored on disk in this version of the
+                    pipeline.
                 </p>
 
-                <ul class="space-y-2.5 pt-2">
+                <ul class="space-y-3 pt-2">
                     <li class="flex items-start space-x-3 text-xs font-medium text-slate-600">
                         <i class="fa-solid fa-check text-emerald-600 mt-0.5"></i>
-                        <span><strong>Trade Timestamp:</strong> Identifiable Execution date matching standard
-                            formats.</span>
+                        <span><strong>Input:</strong> one or many CSV files</span>
                     </li>
                     <li class="flex items-start space-x-3 text-xs font-medium text-slate-600">
                         <i class="fa-solid fa-check text-emerald-600 mt-0.5"></i>
-                        <span><strong>Asset Ticker / Symbol:</strong> ISO standard exchange symbol tickers (e.g.,
-                            RELIANCE, TCS).</span>
+                        <span><strong>Backend:</strong> direct CSV parsing using Flask + pandas</span>
                     </li>
                     <li class="flex items-start space-x-3 text-xs font-medium text-slate-600">
                         <i class="fa-solid fa-check text-emerald-600 mt-0.5"></i>
-                        <span><strong>Quantity & Price:</strong> Numeric columns specifying total accumulated volume and
-                            structural execution rate.</span>
+                        <span><strong>Storage:</strong> no raw CSV file is saved right now</span>
                     </li>
                 </ul>
-
-                <div
-                    class="bg-slate-50 border border-slate-100 p-3.5 rounded-lg text-[11px] text-slate-400 leading-normal font-medium">
-                    <i class="fa-solid fa-triangle-exclamation text-amber-500 mr-1"></i> Non-Equity listings (e.g.,
-                    options, mutual funds) are discarded by standard rule configurations during consolidation
-                    normalization steps.
-                </div>
             </div>
         </div>
     </div>
 
+    {% if parsed_payload %}
     <div class="bg-white border border-slate-200 rounded-xl shadow-xs overflow-hidden">
         <div class="p-6 border-b border-slate-100 flex items-center justify-between">
             <div>
-                <h3 class="text-base font-bold text-slate-900">Historical Pipeline Activity</h3>
-                <p class="text-xs text-slate-400 font-medium mt-0.5">Manifest listing of currently mapped file imports
-                    processed across this family account</p>
+                <h3 class="text-base font-bold text-slate-900">Parsed Upload Summary</h3>
+                <p class="text-xs text-slate-400 font-medium mt-0.5">
+                    CSV files processed in the current request
+                </p>
             </div>
-            <span class="bg-slate-100 text-slate-600 font-semibold px-2.5 py-1 rounded-full text-xs">4 Files
-                Logged</span>
+            <span class="bg-blue-50 text-blue-700 font-semibold px-2.5 py-1 rounded-full text-xs">
+                {{ total_rows }} total rows
+            </span>
         </div>
 
         <div class="overflow-x-auto">
@@ -172,38 +165,22 @@
                 <thead>
                     <tr
                         class="bg-slate-50/70 border-b border-slate-200 text-xs font-semibold uppercase tracking-wider text-slate-400">
-                        <th class="p-4">Timestamp</th>
-                        <th class="p-4">Uploader / Entity</th>
-                        <th class="p-4">Platform Source</th>
-                        <th class="p-4">File Parameters</th>
-                        <th class="p-4 text-right">Status State</th>
+                        <th class="p-4">Source File</th>
+                        <th class="p-4">Parsed Rows</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-100">
+                    {% for item in parsed_payload %}
                     <tr class="hover:bg-slate-50/50 transition-colors">
-                        <td class="p-4 text-xs font-medium text-slate-900">2026-06-24 08:14</td>
-                        <td class="p-4 text-xs font-bold text-slate-700">Primary (Father)</td>
-                        <td class="p-4 text-xs font-medium text-slate-600">Zerodha Console</td>
-                        <td class="p-4 text-xs text-slate-500">`tradebook-father-2026.csv` (242 records parsed)</td>
-                        <td class="p-4 text-right">
-                            <span
-                                class="bg-emerald-50 text-emerald-700 border border-emerald-100 px-2 py-0.5 rounded-md text-[11px] font-bold">SUCCESS</span>
-                        </td>
+                        <td class="p-4 text-xs font-medium text-slate-900">{{ item.source_file }}</td>
+                        <td class="p-4 text-xs text-slate-600">{{ item.row_count }}</td>
                     </tr>
-                    <tr class="hover:bg-slate-50/50 transition-colors">
-                        <td class="p-4 text-xs font-medium text-slate-900">2026-06-23 15:40</td>
-                        <td class="p-4 text-xs font-bold text-slate-700">Spouse (Mother)</td>
-                        <td class="p-4 text-xs font-medium text-slate-600">Groww Platform</td>
-                        <td class="p-4 text-xs text-slate-500">`groww_export_may.xlsx` (48 records parsed)</td>
-                        <td class="p-4 text-right">
-                            <span
-                                class="bg-emerald-50 text-emerald-700 border border-emerald-100 px-2 py-0.5 rounded-md text-[11px] font-bold">SUCCESS</span>
-                        </td>
-                    </tr>
+                    {% endfor %}
                 </tbody>
             </table>
         </div>
     </div>
+    {% endif %}
 
 </div>
 {% endblock %}
@@ -214,47 +191,79 @@
         const dropzone = document.getElementById('dropzone');
         const fileInput = document.getElementById('file_input');
         const fileInfoBox = document.getElementById('file-info-box');
-        const selectedFileName = document.getElementById('selected-file-name');
+        const selectedFileCount = document.getElementById('selected-file-count');
+        const selectedFileList = document.getElementById('selected-file-list');
 
-        // Trigger file window on click
         dropzone.addEventListener('click', () => fileInput.click());
 
-        // Handle visual dragover tracking indicators
         ['dragenter', 'dragover'].forEach(eventName => {
             dropzone.addEventListener(eventName, (e) => {
                 e.preventDefault();
                 dropzone.classList.add('drag-over');
-            }, false);
+            });
         });
 
         ['dragleave', 'drop'].forEach(eventName => {
             dropzone.addEventListener(eventName, (e) => {
                 e.preventDefault();
                 dropzone.classList.remove('drag-over');
-            }, false);
+            });
         });
 
-        // Capture files dropped manually
         dropzone.addEventListener('drop', (e) => {
-            const dt = e.dataTransfer;
-            const files = dt.files;
-            if (files.length) {
-                fileInput.files = files;
-                updateFileDisplay(files[0].name);
+            const files = e.dataTransfer.files;
+            if (!files.length) return;
+
+            if (!allCsv(files)) {
+                alert('Only CSV files are allowed.');
+                return;
             }
+
+            fileInput.files = files;
+            updateFileDisplay(files);
         });
 
-        // Capture standard input changes
         fileInput.addEventListener('change', function () {
-            if (this.files.length) {
-                updateFileDisplay(this.files[0].name);
+            const files = this.files;
+            if (!files.length) return;
+
+            if (!allCsv(files)) {
+                alert('Only CSV files are allowed.');
+                this.value = '';
+                resetFileDisplay();
+                return;
             }
+
+            updateFileDisplay(files);
         });
 
-        function updateFileDisplay(name) {
-            selectedFileName.textContent = name;
+        function allCsv(files) {
+            for (let file of files) {
+                if (!file.name.toLowerCase().endsWith('.csv')) {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        function updateFileDisplay(files) {
+            selectedFileCount.textContent = `${files.length} file(s) selected`;
+            selectedFileList.innerHTML = '';
+
+            Array.from(files).forEach(file => {
+                const li = document.createElement('li');
+                li.className = 'truncate';
+                li.textContent = file.name;
+                selectedFileList.appendChild(li);
+            });
+
             fileInfoBox.classList.remove('hidden');
-            fileInfoBox.classList.add('flex');
+        }
+
+        function resetFileDisplay() {
+            selectedFileCount.textContent = '0 files selected';
+            selectedFileList.innerHTML = '';
+            fileInfoBox.classList.add('hidden');
         }
     });
 </script>
