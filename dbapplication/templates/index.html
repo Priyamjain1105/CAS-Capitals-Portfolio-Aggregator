@@ -1,0 +1,202 @@
+{% extends "base.html" %}
+
+{% block title %}Home - FamilyVest Pyramiding Tracker{% endblock %}
+
+{% block head_content %}
+<style>
+    @keyframes pulse-subtle {
+
+        0%,
+        100% {
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        50% {
+            opacity: 0.85;
+            transform: scale(0.98);
+        }
+    }
+
+    .pulse-effect {
+        animation: pulse-subtle 3s infinite ease-in-out;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="space-y-10">
+
+    <section class="bg-white border border-slate-200 rounded-2xl p-6 md:p-10 shadow-xs relative overflow-hidden">
+        <div
+            class="absolute top-0 right-0 -mt-12 -mr-12 w-48 h-48 bg-blue-50 rounded-full blur-2xl opacity-70 pointer-events-none">
+        </div>
+
+        <div class="max-w-3xl space-y-4 relative z-10">
+            <div
+                class="inline-flex items-center space-x-2 bg-blue-50 text-blue-700 px-3 py-1 rounded-full text-xs font-semibold tracking-wide uppercase">
+                <i class="fa-solid fa-sparkles text-[10px]"></i>
+                <span>Multi-Broker Normalizer</span>
+            </div>
+            <h1 class="text-3xl md:text-4xl lg:text-5xl font-bold text-slate-900 tracking-tight leading-tight">
+                Consolidate your family wealth. <br class="hidden sm:inline">Track your position <span
+                    class="text-blue-600">pyramiding</span>.
+            </h1>
+            <p class="text-base md:text-lg text-slate-500 font-medium leading-relaxed max-w-2xl">
+                Upload raw trade exports from your family's various brokerage platforms. Our system automatically
+                filters for BUY-side equity records, aligns differing spreadsheet formats, and presents a singular
+                master architecture.
+            </p>
+
+            <div class="pt-4 flex flex-col sm:flex-row gap-3">
+                <a href="{{url_for('upload')}}"
+                    class="bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl px-6 py-3 text-sm transition-all duration-200 shadow-sm hover:shadow-md flex items-center justify-center space-x-2">
+                    <i class="fa-solid fa-file-import"></i>
+                    <span>Upload Broker Exports</span>
+                </a>
+                <a href="#"
+                    class="bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 font-semibold rounded-xl px-6 py-3 text-sm transition-all duration-200 flex items-center justify-center space-x-2">
+                    <i class="fa-solid fa-chart-line"></i>
+                    <span>View Analytics Dashboard</span>
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <section class="space-y-4">
+        <div class="flex flex-col space-y-1">
+            <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">System Architecture</span>
+            <h2 class="text-xl md:text-2xl font-bold text-slate-900 flex items-center space-x-2">
+                <i class="fa-solid fa-gears text-blue-600 text-lg"></i>
+                <span>How FamilyVest Optimizes Data</span>
+            </h2>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div
+                class="bg-white border border-slate-200 rounded-xl p-6 shadow-xs transition-all duration-200 hover:shadow-md flex flex-col justify-between">
+                <div class="space-y-4">
+                    <div
+                        class="h-10 w-10 bg-slate-100 rounded-lg flex items-center justify-center text-slate-700 border border-slate-200">
+                        <i class="fa-solid fa-wand-magic-sparkles text-lg"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-base font-bold text-slate-900">Heterogeneous Parsing</h3>
+                        <p class="text-xs text-slate-500 font-medium mt-1 leading-relaxed">
+                            Drop files directly from your brokers. The system detects different column mappings, dates,
+                            and currency variations, sanitizing them into a singular, clean internal schema.
+                        </p>
+                    </div>
+                </div>
+                <div
+                    class="mt-4 pt-4 border-t border-slate-100 flex items-center text-xs text-emerald-700 font-semibold bg-emerald-50/50 px-3 py-1.5 rounded-lg">
+                    <i class="fa-solid fa-circle-check mr-2"></i> No file restructuring needed
+                </div>
+            </div>
+
+            <div
+                class="bg-white border border-slate-200 rounded-xl p-6 shadow-xs transition-all duration-200 hover:shadow-md flex flex-col justify-between">
+                <div class="space-y-4">
+                    <div
+                        class="h-10 w-10 bg-blue-50 rounded-lg flex items-center justify-center text-blue-600 border border-blue-100">
+                        <i class="fa-solid fa-layer-group text-lg"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-base font-bold text-slate-900">Pyramiding Analytics</h3>
+                        <p class="text-xs text-slate-500 font-medium mt-1 leading-relaxed">
+                            Instead of simple average costs, view your holdings chronologically. Identify sequential
+                            price step-ups across members to understand how sizes were aggregated over macro-cycles.
+                        </p>
+                    </div>
+                </div>
+                <div
+                    class="mt-4 pt-4 border-t border-slate-100 flex items-center text-xs text-blue-700 font-semibold bg-blue-50/50 px-3 py-1.5 rounded-lg">
+                    <i class="fa-solid fa-clock-rotate-left mr-2"></i> Step-by-step history logs
+                </div>
+            </div>
+
+            <div
+                class="bg-white border border-slate-200 rounded-xl p-6 shadow-xs transition-all duration-200 hover:shadow-md flex flex-col justify-between">
+                <div class="space-y-4">
+                    <div
+                        class="h-10 w-10 bg-slate-100 rounded-lg flex items-center justify-center text-slate-700 border border-slate-200">
+                        <i class="fa-solid fa-shield-halved text-lg"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-base font-bold text-slate-900">Local Privacy First</h3>
+                        <p class="text-xs text-slate-500 font-medium mt-1 leading-relaxed">
+                            Your family financial statements are parsed locally and kept private. Data isolation
+                            guarantees financial privacy with no persistent external sync configurations required.
+                        </p>
+                    </div>
+                </div>
+                <div
+                    class="mt-4 pt-4 border-t border-slate-100 flex items-center text-xs text-slate-600 font-semibold bg-slate-50 px-3 py-1.5 rounded-lg">
+                    <i class="fa-solid fa-lock mr-2"></i> Client-centric processing
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="bg-white border border-slate-200 rounded-xl p-6 shadow-xs">
+        <div class="flex flex-col space-y-1 mb-6">
+            <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Execution Track</span>
+            <h3 class="text-base font-bold text-slate-900">Onboarding Roadmap</h3>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 relative">
+
+            <div class="relative space-y-2">
+                <div class="flex items-center space-x-3">
+                    <div
+                        class="h-7 w-7 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold text-xs shadow-xs">
+                        1</div>
+                    <h4 class="text-sm font-bold text-slate-900">Gather Exports</h4>
+                </div>
+                <p class="text-xs text-slate-500 pl-10 font-medium">Download CSV/Excel trade ledgers from all individual
+                    accounts across your brokers.</p>
+            </div>
+
+            <div class="relative space-y-2">
+                <div class="flex items-center space-x-3">
+                    <div
+                        class="h-7 w-7 bg-slate-100 text-slate-700 border border-slate-200 rounded-full flex items-center justify-center font-bold text-xs">
+                        2</div>
+                    <h4 class="text-sm font-bold text-slate-900">Unified Upload</h4>
+                </div>
+                <p class="text-xs text-slate-500 pl-10 font-medium">Drop files into the processing gate. The engine
+                    auto-assigns records to the designated family entity.</p>
+            </div>
+
+            <div class="relative space-y-2">
+                <div class="flex items-center space-x-3">
+                    <div
+                        class="h-7 w-7 bg-slate-100 text-slate-700 border border-slate-200 rounded-full flex items-center justify-center font-bold text-xs">
+                        3</div>
+                    <h4 class="text-sm font-bold text-slate-900">Review Matrix</h4>
+                </div>
+                <p class="text-xs text-slate-500 pl-10 font-medium">Inspect aggregated statistics, individual investor
+                    contribution metrics, and raw parsed lists.</p>
+            </div>
+
+            <div class="relative space-y-2">
+                <div class="flex items-center space-x-3">
+                    <div
+                        class="h-7 w-7 bg-slate-100 text-slate-700 border border-slate-200 rounded-full flex items-center justify-center font-bold text-xs">
+                        4</div>
+                    <h4 class="text-sm font-bold text-slate-900">Analyze Pyramids</h4>
+                </div>
+                <p class="text-xs text-slate-500 pl-10 font-medium">View chronological layering paths per stock symbol
+                    to identify execution trends across portfolios.</p>
+            </div>
+
+        </div>
+    </section>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    console.log("Home initialization sequence active.");
+</script>
+{% endblock %}

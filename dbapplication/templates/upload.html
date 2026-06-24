@@ -1,0 +1,261 @@
+{% extends "base.html" %}
+
+{% block title %}Upload Trade Exports - FamilyVest{% endblock %}
+
+{% block head_content %}
+<style>
+    .drag-over {
+        border-color: #2563eb !important;
+        background-color: #f8fafc !important;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="space-y-8">
+
+    <div class="flex flex-col space-y-1">
+        <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Data Ingestion Engine</span>
+        <h1 class="text-2xl md:text-3xl font-bold text-slate-900 flex items-center space-x-2">
+            <i class="fa-solid fa-file-import text-blue-600"></i>
+            <span>Import Broker Logs</span>
+        </h1>
+        <p class="text-xs md:text-sm text-slate-500 font-medium">
+            Upload raw trade ledger CSV or Excel files. The engine extracts **BUY-side equity trades** and automatically
+            normalizes timestamps, asset tickets, and transaction metrics.
+        </p>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+
+        <div class="lg:col-span-2 space-y-6">
+            <div class="bg-white border border-slate-200 rounded-xl p-6 shadow-xs">
+
+                <form action="" method="POST" enctype="multipart/form-data" class="space-y-6" id="upload-form">
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label for="family_member"
+                                class="block text-xs font-bold uppercase tracking-wide text-slate-500 mb-2">
+                                <i class="fa-solid fa-user mr-1.5 text-slate-400"></i>Account Owner / Family Member
+                            </label>
+                            <div class="relative">
+                                <select id="family_member" name="family_member" required
+                                    class="w-full bg-slate-50 border border-slate-200 text-slate-800 text-sm font-medium rounded-lg p-2.5 outline-hidden focus:border-blue-500 focus:bg-white transition-all appearance-none">
+                                    <option value="" disabled selected>Select family member...</option>
+                                    <option value="father">Primary (Father)</option>
+                                    <option value="mother">Spouse (Mother)</option>
+                                    <option value="child_1">Child Portfolio Account 1</option>
+                                    <option value="huf">Family HUF / Corporate Entity</option>
+                                </select>
+                                <div
+                                    class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-slate-400">
+                                    <i class="fa-solid fa-chevron-down text-xs"></i>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label for="broker_platform"
+                                class="block text-xs font-bold uppercase tracking-wide text-slate-500 mb-2">
+                                <i class="fa-solid fa-building-columns mr-1.5 text-slate-400"></i>Source Broker Platform
+                            </label>
+                            <div class="relative">
+                                <select id="broker_platform" name="broker_platform" required
+                                    class="w-full bg-slate-50 border border-slate-200 text-slate-800 text-sm font-medium rounded-lg p-2.5 outline-hidden focus:border-blue-500 focus:bg-white transition-all appearance-none">
+                                    <option value="" disabled selected>Select brokerage source...</option>
+                                    <option value="zerodha">Zerodha (Console Tradebook)</option>
+                                    <option value="groww">Groww (Transactions Export)</option>
+                                    <option value="icici_direct">ICICI Direct (Gain/Loss Statement)</option>
+                                    <option value="generic">Standardized Generic Template CSV</option>
+                                </select>
+                                <div
+                                    class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-slate-400">
+                                    <i class="fa-solid fa-chevron-down text-xs"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="dropzone"
+                        class="border-2 border-dashed border-slate-200 rounded-xl p-8 text-center bg-slate-50/50 hover:bg-slate-50 hover:border-blue-400 transition-all cursor-pointer flex flex-col items-center justify-center space-y-3 group">
+                        <input type="file" id="file_input" name="file" accept=".csv, .xlsx, .xls" class="hidden"
+                            required />
+
+                        <div
+                            class="h-12 w-12 bg-white rounded-full flex items-center justify-center text-slate-400 border border-slate-100 shadow-xs group-hover:text-blue-600 group-hover:scale-105 transition-all">
+                            <i class="fa-solid fa-cloud-arrow-up text-xl"></i>
+                        </div>
+
+                        <div class="space-y-1">
+                            <p class="text-sm font-bold text-slate-700">
+                                Drag and drop your raw export file here, or <span
+                                    class="text-blue-600 hover:underline">browse files</span>
+                            </p>
+                            <p class="text-xs text-slate-400 font-medium">Supports .CSV, .XLS, .XLSX exports up to 15MB
+                            </p>
+                        </div>
+
+                        <div id="file-info-box"
+                            class="hidden text-xs bg-blue-50 text-blue-700 font-semibold px-4 py-2 rounded-lg items-center space-x-2 border border-blue-100">
+                            <i class="fa-solid fa-file-csv text-sm"></i>
+                            <span id="selected-file-name">filename.csv</span>
+                        </div>
+                    </div>
+
+                    <div class="flex justify-end pt-2">
+                        <button type="submit"
+                            class="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm rounded-xl px-6 py-3 transition-colors flex items-center justify-center space-x-2 shadow-xs hover:shadow-md cursor-pointer">
+                            <i class="fa-solid fa-bolt-lightning text-xs"></i>
+                            <span>Execute Extraction Pipeline</span>
+                        </button>
+                    </div>
+
+                </form>
+
+            </div>
+        </div>
+
+        <div class="lg:col-span-1 space-y-6">
+            <div class="bg-white border border-slate-200 rounded-xl p-6 shadow-xs space-y-4">
+                <h3 class="text-sm font-bold text-slate-900 flex items-center space-x-2">
+                    <i class="fa-solid fa-circle-info text-blue-600"></i>
+                    <span>Parsing Requirements</span>
+                </h3>
+
+                <p class="text-xs text-slate-500 font-medium leading-relaxed">
+                    The engine applies programmatic heuristics to identify parameters automatically. To guarantee
+                    structured parsing pipelines, ensure your custom data logs contain these structural keys:
+                </p>
+
+                <ul class="space-y-2.5 pt-2">
+                    <li class="flex items-start space-x-3 text-xs font-medium text-slate-600">
+                        <i class="fa-solid fa-check text-emerald-600 mt-0.5"></i>
+                        <span><strong>Trade Timestamp:</strong> Identifiable Execution date matching standard
+                            formats.</span>
+                    </li>
+                    <li class="flex items-start space-x-3 text-xs font-medium text-slate-600">
+                        <i class="fa-solid fa-check text-emerald-600 mt-0.5"></i>
+                        <span><strong>Asset Ticker / Symbol:</strong> ISO standard exchange symbol tickers (e.g.,
+                            RELIANCE, TCS).</span>
+                    </li>
+                    <li class="flex items-start space-x-3 text-xs font-medium text-slate-600">
+                        <i class="fa-solid fa-check text-emerald-600 mt-0.5"></i>
+                        <span><strong>Quantity & Price:</strong> Numeric columns specifying total accumulated volume and
+                            structural execution rate.</span>
+                    </li>
+                </ul>
+
+                <div
+                    class="bg-slate-50 border border-slate-100 p-3.5 rounded-lg text-[11px] text-slate-400 leading-normal font-medium">
+                    <i class="fa-solid fa-triangle-exclamation text-amber-500 mr-1"></i> Non-Equity listings (e.g.,
+                    options, mutual funds) are discarded by standard rule configurations during consolidation
+                    normalization steps.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="bg-white border border-slate-200 rounded-xl shadow-xs overflow-hidden">
+        <div class="p-6 border-b border-slate-100 flex items-center justify-between">
+            <div>
+                <h3 class="text-base font-bold text-slate-900">Historical Pipeline Activity</h3>
+                <p class="text-xs text-slate-400 font-medium mt-0.5">Manifest listing of currently mapped file imports
+                    processed across this family account</p>
+            </div>
+            <span class="bg-slate-100 text-slate-600 font-semibold px-2.5 py-1 rounded-full text-xs">4 Files
+                Logged</span>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm text-slate-600 border-collapse">
+                <thead>
+                    <tr
+                        class="bg-slate-50/70 border-b border-slate-200 text-xs font-semibold uppercase tracking-wider text-slate-400">
+                        <th class="p-4">Timestamp</th>
+                        <th class="p-4">Uploader / Entity</th>
+                        <th class="p-4">Platform Source</th>
+                        <th class="p-4">File Parameters</th>
+                        <th class="p-4 text-right">Status State</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    <tr class="hover:bg-slate-50/50 transition-colors">
+                        <td class="p-4 text-xs font-medium text-slate-900">2026-06-24 08:14</td>
+                        <td class="p-4 text-xs font-bold text-slate-700">Primary (Father)</td>
+                        <td class="p-4 text-xs font-medium text-slate-600">Zerodha Console</td>
+                        <td class="p-4 text-xs text-slate-500">`tradebook-father-2026.csv` (242 records parsed)</td>
+                        <td class="p-4 text-right">
+                            <span
+                                class="bg-emerald-50 text-emerald-700 border border-emerald-100 px-2 py-0.5 rounded-md text-[11px] font-bold">SUCCESS</span>
+                        </td>
+                    </tr>
+                    <tr class="hover:bg-slate-50/50 transition-colors">
+                        <td class="p-4 text-xs font-medium text-slate-900">2026-06-23 15:40</td>
+                        <td class="p-4 text-xs font-bold text-slate-700">Spouse (Mother)</td>
+                        <td class="p-4 text-xs font-medium text-slate-600">Groww Platform</td>
+                        <td class="p-4 text-xs text-slate-500">`groww_export_may.xlsx` (48 records parsed)</td>
+                        <td class="p-4 text-right">
+                            <span
+                                class="bg-emerald-50 text-emerald-700 border border-emerald-100 px-2 py-0.5 rounded-md text-[11px] font-bold">SUCCESS</span>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const dropzone = document.getElementById('dropzone');
+        const fileInput = document.getElementById('file_input');
+        const fileInfoBox = document.getElementById('file-info-box');
+        const selectedFileName = document.getElementById('selected-file-name');
+
+        // Trigger file window on click
+        dropzone.addEventListener('click', () => fileInput.click());
+
+        // Handle visual dragover tracking indicators
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropzone.addEventListener(eventName, (e) => {
+                e.preventDefault();
+                dropzone.classList.add('drag-over');
+            }, false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropzone.addEventListener(eventName, (e) => {
+                e.preventDefault();
+                dropzone.classList.remove('drag-over');
+            }, false);
+        });
+
+        // Capture files dropped manually
+        dropzone.addEventListener('drop', (e) => {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            if (files.length) {
+                fileInput.files = files;
+                updateFileDisplay(files[0].name);
+            }
+        });
+
+        // Capture standard input changes
+        fileInput.addEventListener('change', function () {
+            if (this.files.length) {
+                updateFileDisplay(this.files[0].name);
+            }
+        });
+
+        function updateFileDisplay(name) {
+            selectedFileName.textContent = name;
+            fileInfoBox.classList.remove('hidden');
+            fileInfoBox.classList.add('flex');
+        }
+    });
+</script>
+{% endblock %}
