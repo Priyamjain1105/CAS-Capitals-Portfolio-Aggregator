@@ -3,5 +3,5 @@ pymysql
 flask-migrate
 flask-login
 flask-bcrypt
-cloudinary dotenv
+cloudinary 
 pandas
