@@ -25,16 +25,16 @@ if os.path.exists('.env'):
 def create_app():
     app = Flask(__name__, template_folder='templates')
     
-    # DB configuration: look for Aiven link first, then standard url, then local fallback
+    # DB configuration: look for environment URL, default directly to Aiven MySQL
     db_uri = os.environ.get('DATABASE_URL') or os.environ.get('SQLALCHEMY_DATABASE_URI')
     if not db_uri:
-        db_uri = 'mysql+pymysql://root:@127.0.0.1/brokerapp'
+        db_uri = 'mysql+pymysql://avnadmin:AVNS_baarj8CFS79MJev_YIC@mysql-3b0838a6-priyamjainsocial-b642.i.aivencloud.com:27509/defaultdb'
     
     app.config['SQLALCHEMY_DATABASE_URI'] = db_uri
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'cas-capitals-secret-key-1234')
     
-    # Configure SSL connect args if connecting to Aiven
+    # Configure SSL connect args (Aiven strictly requires SSL)
     if 'aivencloud.com' in db_uri:
         app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
             'connect_args': {
