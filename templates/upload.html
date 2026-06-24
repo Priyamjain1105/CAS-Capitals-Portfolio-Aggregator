@@ -3,6 +3,10 @@
 {% block title %}Upload Trade CSVs - FamilyVest{% endblock %}
 
 {% block head_content %}
+<!-- Include PapaParse via CDN -->
+<script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+<!-- Include local analytics module -->
+<script src="/static/js/analytics.js"></script>
 <style>
     .drag-over {
         border-color: #2563eb !important;
@@ -20,11 +24,10 @@
         </span>
         <h1 class="text-2xl md:text-3xl font-bold text-slate-900 flex items-center space-x-3">
             <i class="fa-solid fa-file-csv text-blue-600"></i>
-            <span>Parse Trade CSVs</span>
+            <span>Parse Trade CSVs (Client-Side)</span>
         </h1>
         <p class="text-sm text-slate-500 font-medium max-w-3xl">
-            Upload one or multiple CSV files. The backend will read and parse them directly in memory without saving
-            them to disk.
+            Upload your Zerodha Console CSV file exports. The parsing and P&L calculations execute directly in your browser without transmitting any trade logs to external databases.
         </p>
     </section>
 
@@ -34,28 +37,7 @@
         <div class="lg:col-span-2 space-y-6">
             <div class="bg-white border border-slate-200 rounded-xl p-6 shadow-xs">
 
-                <!-- Flash Messages -->
-                {% with messages = get_flashed_messages(with_categories=true) %}
-                {% if messages %}
-                <div class="space-y-3 mb-6">
-                    {% for category, message in messages %}
-                    <div class="rounded-xl border px-4 py-3 text-sm font-medium
-                                    {% if category == 'success' %}
-                                        bg-emerald-50 border-emerald-200 text-emerald-700
-                                    {% elif category == 'error' %}
-                                        bg-red-50 border-red-200 text-red-700
-                                    {% else %}
-                                        bg-slate-50 border-slate-200 text-slate-700
-                                    {% endif %}">
-                        {{ message }}
-                    </div>
-                    {% endfor %}
-                </div>
-                {% endif %}
-                {% endwith %}
-
-                <form action="{{ url_for('upload_file') }}" method="POST" enctype="multipart/form-data"
-                    class="space-y-6" id="upload-form">
+                <form class="space-y-6" id="upload-form">
 
                     <!-- Optional label -->
                     <div>
@@ -65,7 +47,6 @@
                             Batch Label (Optional)
                         </label>
                         <input type="text" id="file_label" name="file_label" placeholder="e.g. june_family_upload"
-                            value="{{ file_label or '' }}"
                             class="w-full bg-slate-50 border border-slate-200 text-slate-800 text-sm font-medium rounded-lg px-3 py-2.5 outline-none focus:border-blue-500 focus:bg-white transition-all">
                         <p class="mt-2 text-xs text-slate-400">
                             Optional label for this upload batch.
@@ -90,7 +71,7 @@
                                 <span class="text-blue-600 hover:underline">browse files</span>
                             </p>
                             <p class="text-xs text-slate-400 font-medium">
-                                Multiple CSV uploads supported • Parse only, no file storage
+                                Multiple CSV uploads supported • Local Client Processing Only
                             </p>
                         </div>
 
@@ -108,7 +89,7 @@
                         <button type="submit"
                             class="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm rounded-xl px-6 py-3 transition-all flex items-center justify-center space-x-2 shadow-xs hover:shadow-md cursor-pointer">
                             <i class="fa-solid fa-bolt text-xs"></i>
-                            <span>Parse CSV Files</span>
+                            <span>Parse & Calculate Metrics</span>
                         </button>
                     </div>
 
@@ -116,7 +97,7 @@
             </div>
         </div>
 
-        <!-- Info Card -->
+        <!-- Sidebar Info & Upload History -->
         <div class="lg:col-span-1 space-y-6">
             <div class="bg-white border border-slate-200 rounded-xl p-6 shadow-xs space-y-4">
                 <h3 class="text-sm font-bold text-slate-900 flex items-center space-x-2">
@@ -125,105 +106,31 @@
                 </h3>
 
                 <p class="text-xs text-slate-500 font-medium leading-relaxed">
-                    Uploaded CSV files are parsed directly in memory. Data is persisted to the database and cleared on new file uploads.
+                    All trades are parsed locally in Javascript. No CSV content or calculated trades are sent to external databases.
                 </p>
 
                 <ul class="space-y-3 pt-2">
                     <li class="flex items-start space-x-3 text-xs font-medium text-slate-600">
                         <i class="fa-solid fa-check text-emerald-600 mt-0.5"></i>
-                        <span><strong>Overwrite strategy:</strong> replaces previous logs</span>
+                        <span><strong>Privacy:</strong> 100% Client-side privacy</span>
                     </li>
                     <li class="flex items-start space-x-3 text-xs font-medium text-slate-600">
                         <i class="fa-solid fa-check text-emerald-600 mt-0.5"></i>
-                        <span><strong>Backend:</strong> Flask-SQLAlchemy + MySQL</span>
+                        <span><strong>Storage:</strong> HTML5 localStorage</span>
                     </li>
                 </ul>
             </div>
 
-            {% if uploads %}
-            <div class="bg-white border border-slate-200 rounded-xl p-6 shadow-xs space-y-4">
+            <!-- Upload History list -->
+            <div id="history-box" class="hidden bg-white border border-slate-200 rounded-xl p-6 shadow-xs space-y-4">
                 <h3 class="text-sm font-bold text-slate-900 flex items-center space-x-2">
                     <i class="fa-solid fa-clock-rotate-left text-blue-600"></i>
                     <span>Active Session Upload History</span>
                 </h3>
-                <div class="space-y-3 max-h-60 overflow-y-auto pr-1">
-                    {% for upload in uploads %}
-                    <div class="p-3 bg-slate-50 border border-slate-150 rounded-lg text-xs space-y-1">
-                        <div class="font-bold text-slate-800 truncate">{{ upload.filename }}</div>
-                        {% if upload.file_label %}
-                        <div class="text-[10px] text-blue-600 font-semibold bg-blue-50 px-1.5 py-0.5 rounded-sm inline-block">Label: {{ upload.file_label }}</div>
-                        {% endif %}
-                        <div class="flex justify-between text-[10px] text-slate-400 font-medium">
-                            <span>Rows: {{ upload.row_count }}</span>
-                            <span>{{ upload.uploaded_at.strftime('%H:%M:%S') }}</span>
-                        </div>
-                    </div>
-                    {% endfor %}
-                </div>
+                <div id="history-list" class="space-y-3 max-h-60 overflow-y-auto pr-1"></div>
             </div>
-            {% endif %}
         </div>
     </div>
-
-    {% if parsed_payload %}
-    <div class="bg-white border border-slate-200 rounded-xl shadow-xs overflow-hidden">
-        <div class="p-6 border-b border-slate-100 flex items-center justify-between">
-            <div>
-                <h3 class="text-base font-bold text-slate-900">Parsed Upload Summary</h3>
-                <p class="text-xs text-slate-400 font-medium mt-0.5">
-                    CSV files processed in the current request
-                </p>
-            </div>
-            <span class="bg-blue-50 text-blue-700 font-semibold px-2.5 py-1 rounded-full text-xs">
-                {{ total_rows }} total rows
-            </span>
-        </div>
-
-        <div class="p-6 space-y-8">
-            {% for item in parsed_payload %}
-            <div class="border border-slate-200 rounded-xl overflow-hidden">
-                <div class="px-4 py-3 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
-                    <div>
-                        <p class="text-sm font-semibold text-slate-900">{{ item.source_file }}</p>
-                        <p class="text-xs text-slate-500">
-                            Previewing {{ item.rows|length }} row(s) • Total parsed rows: {{ item.row_count }}
-                        </p>
-                    </div>
-                </div>
-
-                {% if item.rows and item.rows|length > 0 %}
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left text-sm text-slate-600 border-collapse">
-                        <thead>
-                            <tr
-                                class="bg-slate-50/70 border-b border-slate-200 text-xs font-semibold uppercase tracking-wider text-slate-400">
-                                {% for key in item.rows[0].keys() %}
-                                <th class="p-4">{{ key }}</th>
-                                {% endfor %}
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-slate-100">
-                            {% for row in item.rows %}
-                            <tr class="hover:bg-slate-50/50 transition-colors">
-                                {% for value in row.values() %}
-                                <td class="p-4 text-xs text-slate-700">{{ value }}</td>
-                                {% endfor %}
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-                {% else %}
-                <div class="p-4 text-sm text-slate-500">
-                    No rows found in this CSV.
-                </div>
-                {% endif %}
-            </div>
-            {% endfor %}
-        </div>
-    </div>
-    {% endif %}
-
 </div>
 {% endblock %}
 
@@ -235,6 +142,7 @@
         const fileInfoBox = document.getElementById('file-info-box');
         const selectedFileCount = document.getElementById('selected-file-count');
         const selectedFileList = document.getElementById('selected-file-list');
+        const uploadForm = document.getElementById('upload-form');
 
         dropzone.addEventListener('click', () => fileInput.click());
 
@@ -312,6 +220,106 @@
             selectedFileList.innerHTML = '';
             fileInfoBox.classList.add('hidden');
         }
+
+        function readFileAsText(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = () => reject(reader.error);
+                reader.readAsText(file);
+            });
+        }
+
+        // Render past upload history from localStorage on load
+        const historyBox = document.getElementById('history-box');
+        const historyList = document.getElementById('history-list');
+        const uploadHistory = JSON.parse(localStorage.getItem('upload_history') || '[]');
+        
+        if (uploadHistory.length > 0) {
+            historyBox.classList.remove('hidden');
+            historyList.innerHTML = '';
+            uploadHistory.forEach(up => {
+                const el = document.createElement('div');
+                el.className = 'p-3 bg-slate-50 border border-slate-150 rounded-lg text-xs space-y-1';
+                el.innerHTML = `
+                    <div class="font-bold text-slate-800 truncate">${up.filename}</div>
+                    ${up.file_label ? `<div class="text-[10px] text-blue-600 font-semibold bg-blue-50 px-1.5 py-0.5 rounded-sm inline-block">Label: ${up.file_label}</div>` : ''}
+                    <div class="flex justify-between text-[10px] text-slate-400 font-medium">
+                        <span>Rows: ${up.row_count}</span>
+                        <span>${up.uploaded_at}</span>
+                    </div>
+                `;
+                historyList.appendChild(el);
+            });
+        }
+
+        // Intercept submit
+        uploadForm.addEventListener('submit', async function (e) {
+            e.preventDefault();
+            const files = fileInput.files;
+            if (!files.length) return;
+
+            let allTrades = [];
+            const fileLabel = document.getElementById('file_label').value.trim();
+            const newHistory = [];
+
+            try {
+                for (let file of files) {
+                    const text = await readFileAsText(file);
+                    const parsed = Papa.parse(text, {
+                        header: true,
+                        skipEmptyLines: true
+                    });
+
+                    const rows = parsed.data;
+                    const cleaned = rows.map((row, idx) => {
+                        const qty = parseFloat(row.quantity || 0);
+                        const price = parseFloat(row.price || 0);
+                        return {
+                            symbol: row.symbol || '',
+                            isin: row.isin || '',
+                            trade_date: row.trade_date || '',
+                            exchange: row.exchange || 'NSE',
+                            segment: row.segment || 'FO',
+                            series: row.series || '',
+                            trade_type: String(row.trade_type || 'buy').toLowerCase(),
+                            auction: String(row.auction).toLowerCase() === 'true',
+                            quantity: qty,
+                            price: price,
+                            trade_id: row.trade_id || `MOCK_T_${idx}`,
+                            order_id: row.order_id || `MOCK_O_${idx}`,
+                            order_execution_time: row.order_execution_time || row.trade_date || new Date().toISOString(),
+                            expiry_date: row.expiry_date || '',
+                            value: qty * price
+                        };
+                    });
+
+                    allTrades = allTrades.concat(cleaned);
+                    newHistory.push({
+                        filename: file.name,
+                        file_label: fileLabel || null,
+                        row_count: cleaned.length,
+                        uploaded_at: new Date().toLocaleTimeString()
+                    });
+                }
+
+                // Overwrite strategy: clear previous and save new
+                localStorage.setItem('trade_logs', JSON.stringify(allTrades));
+                
+                // Trigger metrics
+                const metrics = calculateAllMetrics(allTrades);
+                if (metrics) {
+                    localStorage.setItem('aggregate_metrics', JSON.stringify(metrics));
+                    localStorage.setItem('upload_history', JSON.stringify(newHistory));
+                    window.location.href = '/dashboard';
+                } else {
+                    alert('Invalid file format. Calculations failed.');
+                }
+            } catch (err) {
+                console.error("Local parsing failure:", err);
+                alert("CSV loading failed: " + err.message);
+            }
+        });
     });
 </script>
 {% endblock %}

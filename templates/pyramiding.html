@@ -36,9 +36,8 @@
         </p>
     </section>
 
-    {% if not positions_with_trades %}
     <!-- Empty State -->
-    <div class="bg-white border border-slate-200 rounded-2xl p-12 text-center max-w-xl mx-auto space-y-6 shadow-xs">
+    <div id="empty-state" class="hidden bg-white border border-slate-200 rounded-2xl p-12 text-center max-w-xl mx-auto space-y-6 shadow-xs">
         <div class="h-16 w-16 bg-blue-50 rounded-full flex items-center justify-center text-blue-600 mx-auto">
             <i class="fa-solid fa-layer-group text-2xl"></i>
         </div>
@@ -55,123 +54,12 @@
             </a>
         </div>
     </div>
-    {% else %}
     
-    <!-- Positions List Container -->
-    <section class="space-y-4">
-        {% for item in positions_with_trades %}
-        {% set pos = item.position %}
-        <div class="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-xs hover:border-blue-300 transition-colors">
-            
-            <!-- Accordion Header -->
-            <div class="p-5 flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0 position-row hover:bg-slate-50/50" onclick="toggleAccordion('steps-{{ pos.id }}', 'icon-{{ pos.id }}')">
-                <div class="flex items-center space-x-4">
-                    <span class="h-10 w-10 rounded-lg flex items-center justify-center font-bold text-sm
-                        {% if pos.status == 'open' %}bg-blue-50 text-blue-700{% else %}bg-slate-100 text-slate-700{% endif %}">
-                        <i class="fa-solid fa-folder-open text-xs"></i>
-                    </span>
-                    <div>
-                        <div class="flex items-center space-x-2">
-                            <h3 class="text-base font-extrabold text-slate-900">{{ pos.symbol }}</h3>
-                            <span class="px-2 py-0.5 rounded-full text-[9px] font-extrabold uppercase
-                                {% if pos.status == 'open' %}bg-blue-100 text-blue-700{% else %}bg-slate-200 text-slate-600{% endif %}">
-                                {{ pos.status }}
-                            </span>
-                        </div>
-                        <p class="text-xs text-slate-400 font-medium mt-0.5">
-                            Opened: {{ pos.open_time.strftime('%b %d, %Y at %H:%M') }}
-                        </p>
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-2 text-xs md:text-right font-medium">
-                    <div>
-                        <span class="text-[10px] text-slate-400 font-bold uppercase block">Instrument</span>
-                        <span class="text-slate-800 font-bold uppercase">{{ pos.instrument_type }}</span>
-                    </div>
-                    <div>
-                        <span class="text-[10px] text-slate-400 font-bold uppercase block">Total Lot Size</span>
-                        <span class="text-slate-800 font-bold">{{ pos.net_quantity if pos.net_quantity != 0 else pos.max_quantity }}</span>
-                    </div>
-                    <div>
-                        <span class="text-[10px] text-slate-400 font-bold uppercase block">Avg Price</span>
-                        <span class="text-slate-800 font-bold">
-                            ₹{{ "{:,.2f}".format(pos.entry_price) if pos.net_quantity >= 0 else "{:,.2f}".format(pos.exit_price or 0.0) }}
-                        </span>
-                    </div>
-                    <div>
-                        <span class="text-[10px] text-slate-400 font-bold uppercase block">Realized P&L</span>
-                        <span class="font-extrabold {% if pos.realized_pnl >= 0 %}text-emerald-700{% else %}text-red-700{% endif %}">
-                            {{ "₹{:,.2f}".format(pos.realized_pnl) }}
-                        </span>
-                    </div>
-                </div>
-
-                <div class="flex items-center justify-end text-slate-400 md:pl-4">
-                    <i id="icon-{{ pos.id }}" class="fa-solid fa-chevron-down transition-transform duration-200"></i>
-                </div>
-            </div>
-
-            <!-- Accordion Expandable Content -->
-            <div id="steps-{{ pos.id }}" class="hidden border-t border-slate-100 bg-slate-50/50 p-6 space-y-6">
-                <h4 class="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center space-x-2">
-                    <i class="fa-solid fa-route text-blue-600"></i>
-                    <span>Order execution path timeline</span>
-                </h4>
-                
-                <div class="relative pl-4 space-y-6">
-                    {% for step in item.steps %}
-                    {% set trade = step.trade %}
-                    <div class="timeline-item relative flex items-start space-x-4 pl-8">
-                        
-                        <!-- Timeline Dot Icon -->
-                        <span class="absolute left-0 top-1 h-10 w-10 rounded-full flex items-center justify-center border z-10 bg-white
-                            {% if trade.trade_type == 'buy' %}border-emerald-200 text-emerald-600{% else %}border-red-200 text-red-600{% endif %}">
-                            {% if trade.trade_type == 'buy' %}
-                            <i class="fa-solid fa-arrow-trend-up text-xs"></i>
-                            {% else %}
-                            <i class="fa-solid fa-arrow-trend-down text-xs"></i>
-                            {% endif %}
-                        </span>
-
-                        <!-- Sizing Progression Log Card -->
-                        <div class="flex-grow bg-white border border-slate-200 rounded-xl p-4 shadow-2xs grid grid-cols-1 md:grid-cols-4 gap-4 items-center">
-                            <div>
-                                <span class="text-[9px] text-slate-400 font-bold uppercase block">Order execution time</span>
-                                <span class="text-slate-800 text-xs font-bold">{{ trade.order_execution_time.strftime('%Y-%m-%d %H:%M:%S') }}</span>
-                            </div>
-                            
-                            <div>
-                                <span class="text-[9px] text-slate-400 font-bold uppercase block">Action & Sizing</span>
-                                <div class="flex items-center space-x-1.5 mt-0.5">
-                                    <span class="px-1.5 py-0.5 rounded-md text-[9px] font-extrabold uppercase tracking-wide
-                                        {% if trade.trade_type == 'buy' %}bg-emerald-50 text-emerald-700{% else %}bg-red-50 text-red-700{% endif %}">
-                                        {{ trade.trade_type }}
-                                    </span>
-                                    <span class="text-xs font-bold text-slate-700">{{ trade.quantity }} @ ₹{{ "{:,.2f}".format(trade.price) }}</span>
-                                </div>
-                            </div>
-
-                            <div>
-                                <span class="text-[9px] text-slate-400 font-bold uppercase block">Running position size</span>
-                                <span class="text-slate-700 text-xs font-bold">{{ step.running_qty }} unit(s)</span>
-                            </div>
-
-                            <div>
-                                <span class="text-[9px] text-slate-400 font-bold uppercase block">Weighted average cost</span>
-                                <span class="text-slate-900 text-xs font-extrabold">₹{{ "{:,.2f}".format(step.avg_cost) }}</span>
-                            </div>
-                        </div>
-
-                    </div>
-                    {% endfor %}
-                </div>
-            </div>
-
-        </div>
-        {% endfor %}
-    </section>
-    {% endif %}
+    <!-- Active timeline content -->
+    <div id="pyramiding-content" class="hidden">
+        <!-- Positions List Container -->
+        <section id="positions-list-container" class="space-y-4"></section>
+    </div>
 </div>
 {% endblock %}
 
@@ -191,5 +79,208 @@
             icon.classList.add('fa-chevron-down');
         }
     }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        const aggregateMetrics = JSON.parse(localStorage.getItem('aggregate_metrics'));
+        const tradeLogs = JSON.parse(localStorage.getItem('trade_logs'));
+
+        if (!aggregateMetrics || !tradeLogs || tradeLogs.length === 0) {
+            document.getElementById('empty-state').classList.remove('hidden');
+            document.getElementById('pyramiding-content').classList.add('hidden');
+            return;
+        }
+
+        document.getElementById('empty-state').classList.add('hidden');
+        document.getElementById('pyramiding-content').classList.remove('hidden');
+
+        // Formatter functions
+        function formatCurrency(val) {
+            const isNegative = val < 0;
+            const absoluteVal = Math.abs(val);
+            const formatted = '₹' + absoluteVal.toLocaleString('en-IN', { 
+                minimumFractionDigits: 2, 
+                maximumFractionDigits: 2 
+            });
+            return isNegative ? '-' + formatted : formatted;
+        }
+
+        function formatDateTime(dStr) {
+            if (!dStr) return '-';
+            const date = new Date(dStr);
+            return date.toLocaleString('en-US', { 
+                month: 'short', 
+                day: 'numeric', 
+                year: 'numeric',
+                hour: '2-digit', 
+                minute: '2-digit' 
+            });
+        }
+
+        const positionsList = document.getElementById('positions-list-container');
+        positionsList.innerHTML = '';
+
+        const positions = aggregateMetrics.positions;
+        
+        // Sort positions open_time descending
+        positions.sort((a, b) => new Date(b.open_time) - new Date(a.open_time));
+
+        positions.forEach((pos, idx) => {
+            // Find trades that built this position
+            const expiryStr = pos.expiry_date ? String(pos.expiry_date).split('T')[0] : '';
+            
+            const matchingTrades = tradeLogs.filter(t => {
+                const tExpiryStr = t.expiry_date ? String(t.expiry_date).split('T')[0] : '';
+                const tOpenTime = new Date(t.order_execution_time);
+                const pOpenTime = new Date(pos.open_time);
+                
+                let timeMatch = tOpenTime >= pOpenTime;
+                if (pos.close_time) {
+                    const pCloseTime = new Date(pos.close_time);
+                    timeMatch = timeMatch && (tOpenTime <= pCloseTime);
+                }
+                
+                return t.symbol === pos.symbol && tExpiryStr === expiryStr && timeMatch;
+            });
+
+            // Sort trades chronologically
+            matchingTrades.sort((a, b) => new Date(a.order_execution_time) - new Date(b.order_execution_time));
+
+            let runningQty = 0.0;
+            let runningValue = 0.0;
+            let stepsHtml = '';
+
+            matchingTrades.forEach((t) => {
+                const tType = t.trade_type.toLowerCase();
+                const qty = parseFloat(t.quantity);
+                const val = qty * parseFloat(t.price);
+
+                if (tType === 'buy') {
+                    if (pos.net_quantity >= 0 || pos.entry_price > 0) { // Long
+                        runningQty += qty;
+                        runningValue += val;
+                    } else { // Covering short
+                        runningQty -= qty;
+                        runningValue -= val;
+                    }
+                } else if (tType === 'sell') {
+                    if (pos.net_quantity >= 0 || pos.entry_price > 0) { // Liquidating long
+                        runningQty -= qty;
+                        runningValue -= val;
+                    } else { // Shorting more
+                        runningQty += qty;
+                        runningValue += val;
+                    }
+                }
+
+                const avgCost = runningQty > 0 ? (runningValue / runningQty) : 0;
+
+                stepsHtml += `
+                    <div class="timeline-item relative flex items-start space-x-4 pl-8">
+                        
+                        <!-- Timeline Dot Icon -->
+                        <span class="absolute left-0 top-1 h-10 w-10 rounded-full flex items-center justify-center border z-10 bg-white
+                            ${tType === 'buy' ? 'border-emerald-200 text-emerald-600' : 'border-red-200 text-red-600'}">
+                            <i class="fa-solid ${tType === 'buy' ? 'fa-arrow-trend-up' : 'fa-arrow-trend-down'} text-xs"></i>
+                        </span>
+
+                        <!-- Sizing Progression Log Card -->
+                        <div class="flex-grow bg-white border border-slate-200 rounded-xl p-4 shadow-2xs grid grid-cols-1 md:grid-cols-4 gap-4 items-center">
+                            <div>
+                                <span class="text-[9px] text-slate-400 font-bold uppercase block">Order execution time</span>
+                                <span class="text-slate-800 text-xs font-bold">${formatDateTime(t.order_execution_time)}</span>
+                            </div>
+                            
+                            <div>
+                                <span class="text-[9px] text-slate-400 font-bold uppercase block">Action & Sizing</span>
+                                <div class="flex items-center space-x-1.5 mt-0.5">
+                                    <span class="px-1.5 py-0.5 rounded-md text-[9px] font-extrabold uppercase tracking-wide
+                                        ${tType === 'buy' ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'}">
+                                        ${tType}
+                                    </span>
+                                    <span class="text-xs font-bold text-slate-700">${qty} @ ${formatCurrency(t.price)}</span>
+                                </div>
+                            </div>
+
+                            <div>
+                                <span class="text-[9px] text-slate-400 font-bold uppercase block">Running position size</span>
+                                <span class="text-slate-700 text-xs font-bold">${runningQty} unit(s)</span>
+                            </div>
+
+                            <div>
+                                <span class="text-[9px] text-slate-400 font-bold uppercase block">Weighted average cost</span>
+                                <span class="text-slate-900 text-xs font-extrabold">${formatCurrency(avgCost)}</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            const accordionEl = document.createElement('div');
+            accordionEl.className = 'bg-white border border-slate-200 rounded-xl overflow-hidden shadow-xs hover:border-blue-300 transition-colors';
+            accordionEl.innerHTML = `
+                <!-- Accordion Header -->
+                <div class="p-5 flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0 position-row hover:bg-slate-50/50 cursor-pointer" onclick="toggleAccordion('steps-${idx}', 'icon-${idx}')">
+                    <div class="flex items-center space-x-4">
+                        <span class="h-10 w-10 rounded-lg flex items-center justify-center font-bold text-sm
+                            ${pos.status === 'open' ? 'bg-blue-50 text-blue-700' : 'bg-slate-100 text-slate-700'}">
+                            <i class="fa-solid fa-folder-open text-xs"></i>
+                        </span>
+                        <div>
+                            <div class="flex items-center space-x-2">
+                                <h3 class="text-base font-extrabold text-slate-900">${pos.symbol}</h3>
+                                <span class="px-2 py-0.5 rounded-full text-[9px] font-extrabold uppercase
+                                    ${pos.status === 'open' ? 'bg-blue-100 text-blue-700' : 'bg-slate-200 text-slate-600'}">
+                                    ${pos.status}
+                                </span>
+                            </div>
+                            <p class="text-xs text-slate-400 font-medium mt-0.5">
+                                Opened: ${formatDateTime(pos.open_time)}
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-2 text-xs md:text-right font-medium">
+                        <div>
+                            <span class="text-[10px] text-slate-400 font-bold uppercase block">Instrument</span>
+                            <span class="text-slate-800 font-bold uppercase">${pos.instrument_type}</span>
+                        </div>
+                        <div>
+                            <span class="text-[10px] text-slate-400 font-bold uppercase block">Total Lot Size</span>
+                            <span class="text-slate-800 font-bold">${pos.net_quantity !== 0 ? pos.net_quantity : pos.max_quantity}</span>
+                        </div>
+                        <div>
+                            <span class="text-[10px] text-slate-400 font-bold uppercase block">Avg Price</span>
+                            <span class="text-slate-800 font-bold">
+                                ${formatCurrency(pos.net_quantity >= 0 ? pos.entry_price : (pos.exit_price || 0.0))}
+                            </span>
+                        </div>
+                        <div>
+                            <span class="text-[10px] text-slate-400 font-bold uppercase block">Realized P&L</span>
+                            <span class="font-extrabold ${pos.realized_pnl >= 0 ? 'text-emerald-700' : 'text-red-700'}">
+                                ${formatCurrency(pos.realized_pnl)}
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center justify-end text-slate-400 md:pl-4">
+                        <i id="icon-${idx}" class="fa-solid fa-chevron-down transition-transform duration-200"></i>
+                    </div>
+                </div>
+
+                <!-- Accordion Expandable Content -->
+                <div id="steps-${idx}" class="hidden border-t border-slate-100 bg-slate-50/50 p-6 space-y-6">
+                    <h4 class="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center space-x-2">
+                        <i class="fa-solid fa-route text-blue-600"></i>
+                        <span>Order execution path timeline</span>
+                    </h4>
+                    
+                    <div class="relative pl-4 space-y-6">
+                        ${stepsHtml}
+                    </div>
+                </div>
+            `;
+            positionsList.appendChild(accordionEl);
+        });
+    });
 </script>
 {% endblock %}

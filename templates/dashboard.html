@@ -5,6 +5,8 @@
 {% block head_content %}
 <!-- Include Chart.js via CDN -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<!-- Include local analytics module -->
+<script src="/static/js/analytics.js"></script>
 <style>
     @keyframes fadeInUp {
         from {
@@ -58,33 +60,9 @@
 
 {% block content %}
 <div class="space-y-8">
-    <!-- Title Section -->
-    <section class="flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0 fade-in-card delay-1">
-        <div>
-            <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Analytical Core</span>
-            <h1 class="text-2xl md:text-3xl font-bold text-slate-900 flex items-center space-x-3">
-                <i class="fa-solid fa-chart-line text-blue-600"></i>
-                <span>Trade Journal Dashboard</span>
-            </h1>
-            <p class="text-sm text-slate-500 font-medium mt-1">
-                Real-time parsed metrics, execution win-rates, and risk analytics for the active session.
-            </p>
-        </div>
-
-        <div>
-            {% if aggregate %}
-            <button id="trigger-ai-btn"
-                class="bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm rounded-xl px-5 py-3 transition-all flex items-center space-x-2 shadow-xs hover:shadow-md cursor-pointer">
-                <i class="fa-solid fa-brain"></i>
-                <span>Trigger AI Behavioral Analysis</span>
-            </button>
-            {% endif %}
-        </div>
-    </section>
-
-    {% if not aggregate %}
+    
     <!-- Empty State -->
-    <div class="bg-white border border-slate-200 rounded-2xl p-12 text-center max-w-xl mx-auto space-y-6 shadow-xs">
+    <div id="empty-state" class="hidden bg-white border border-slate-200 rounded-2xl p-12 text-center max-w-xl mx-auto space-y-6 shadow-xs">
         <div class="h-16 w-16 bg-blue-50 rounded-full flex items-center justify-center text-blue-600 mx-auto">
             <i class="fa-solid fa-file-csv text-2xl"></i>
         </div>
@@ -95,616 +73,672 @@
             </p>
         </div>
         <div>
-            <a href="{{ url_for('upload') }}"
-                class="inline-flex items-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl px-5 py-3 transition-all">
+            <a href="{{ url_for('upload') }}" class="inline-flex items-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl px-5 py-3 transition-all">
                 <i class="fa-solid fa-upload"></i>
                 <span>Upload Trades CSV</span>
             </a>
         </div>
     </div>
-    {% else %}
 
-    <!-- KPI Summary Grid -->
-    <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 fade-in-card delay-2">
-        <!-- Net P&L Card -->
-        <div class="kpi-card bg-white border border-slate-200 rounded-xl p-5 shadow-xs flex flex-col justify-between">
-            <div class="flex items-center justify-between">
-                <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Net P&L</span>
-                <span
-                    class="h-8 w-8 rounded-lg flex items-center justify-center {% if aggregate.net_pnl >= 0 %}bg-emerald-50 text-emerald-600{% else %}bg-red-50 text-red-600{% endif %}">
-                    <i class="fa-solid fa-indian-rupee-sign"></i>
-                </span>
-            </div>
-            <div class="mt-4">
-                <h3
-                    class="text-2xl font-extrabold {% if aggregate.net_pnl >= 0 %}text-emerald-700{% else %}text-red-700{% endif %}">
-                    {{ "₹{:,.2f}".format(aggregate.net_pnl) }}
-                </h3>
-                <p class="text-[11px] text-slate-400 font-semibold mt-1">
-                    Gross P&L: {{ "₹{:,.2f}".format(aggregate.total_pnl) }}
+    <!-- Active Content Wrapper -->
+    <div id="dashboard-content" class="hidden space-y-8">
+        <!-- Title Section -->
+        <section class="flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0 fade-in-card delay-1">
+            <div>
+                <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Analytical Core</span>
+                <h1 class="text-2xl md:text-3xl font-bold text-slate-900 flex items-center space-x-3">
+                    <i class="fa-solid fa-chart-line text-blue-600"></i>
+                    <span>Trade Journal Dashboard</span>
+                </h1>
+                <p class="text-sm text-slate-500 font-medium mt-1">
+                    Real-time parsed metrics, execution win-rates, and risk analytics for the active session.
                 </p>
             </div>
-        </div>
-
-        <!-- Win Rate Card -->
-        <div class="kpi-card bg-white border border-slate-200 rounded-xl p-5 shadow-xs flex flex-col justify-between">
-            <div class="flex items-center justify-between">
-                <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Win Rate</span>
-                <span class="h-8 w-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
-                    <i class="fa-solid fa-trophy"></i>
-                </span>
-            </div>
-            <div class="mt-4">
-                <h3 class="text-2xl font-extrabold text-slate-900">
-                    {{ "{:.1f}%".format(aggregate.win_rate) }}
-                </h3>
-                <p class="text-[11px] text-slate-400 font-semibold mt-1">
-                    {{ aggregate.winning_trades }} wins / {{ aggregate.losing_trades }} losses
-                </p>
-            </div>
-        </div>
-
-        <!-- Max Drawdown Card -->
-        <div class="kpi-card bg-white border border-slate-200 rounded-xl p-5 shadow-xs flex flex-col justify-between">
-            <div class="flex items-center justify-between">
-                <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Max Drawdown</span>
-                <span class="h-8 w-8 rounded-lg bg-red-50 text-red-600 flex items-center justify-center">
-                    <i class="fa-solid fa-circle-down"></i>
-                </span>
-            </div>
-            <div class="mt-4">
-                <h3 class="text-2xl font-extrabold text-red-700">
-                    {{ "₹{:,.2f}".format(aggregate.max_drawdown) }}
-                </h3>
-                <p class="text-[11px] text-slate-400 font-semibold mt-1">
-                    Peak-to-trough drop in net equity
-                </p>
-            </div>
-        </div>
-
-        <!-- Profit Factor Card -->
-        <div class="kpi-card bg-white border border-slate-200 rounded-xl p-5 shadow-xs flex flex-col justify-between">
-            <div class="flex items-center justify-between">
-                <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Profit Factor</span>
-                <span class="h-8 w-8 rounded-lg bg-slate-100 text-slate-700 flex items-center justify-center">
-                    <i class="fa-solid fa-scale-balanced"></i>
-                </span>
-            </div>
-            <div class="mt-4">
-                <h3 class="text-2xl font-extrabold text-slate-900">
-                    {% if aggregate.profit_factor >= 999.0 %}
-                    &infin;
-                    {% else %}
-                    {{ "{:.2f}".format(aggregate.profit_factor) }}
-                    {% endif %}
-                </h3>
-                <p class="text-[11px] text-slate-400 font-semibold mt-1">
-                    Total Brokerage: {{ "₹{:,.2f}".format(aggregate.total_brokerage) }}
-                </p>
-            </div>
-        </div>
-    </section>
-
-    <!-- Additional KPI Grid -->
-    <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 fade-in-card delay-3">
-        <div class="bg-white border border-slate-200 rounded-xl p-4 shadow-xs flex items-center justify-between">
+            
             <div>
-                <span class="text-[10px] font-bold text-slate-400 uppercase">Avg Winning Trade</span>
-                <h4 class="text-base font-extrabold text-emerald-700 mt-0.5">{{ "₹{:,.2f}".format(aggregate.avg_win) }}
-                </h4>
-            </div>
-            <i class="fa-solid fa-arrow-trend-up text-emerald-500 text-lg"></i>
-        </div>
-        <div class="bg-white border border-slate-200 rounded-xl p-4 shadow-xs flex items-center justify-between">
-            <div>
-                <span class="text-[10px] font-bold text-slate-400 uppercase">Avg Losing Trade</span>
-                <h4 class="text-base font-extrabold text-red-700 mt-0.5">{{ "₹{:,.2f}".format(aggregate.avg_loss) }}
-                </h4>
-            </div>
-            <i class="fa-solid fa-arrow-trend-down text-red-500 text-lg"></i>
-        </div>
-        <div class="bg-white border border-slate-200 rounded-xl p-4 shadow-xs flex items-center justify-between">
-            <div>
-                <span class="text-[10px] font-bold text-slate-400 uppercase">Max Win Size</span>
-                <h4 class="text-base font-extrabold text-emerald-700 mt-0.5">{{ "₹{:,.2f}".format(aggregate.max_win) }}
-                </h4>
-            </div>
-            <i class="fa-solid fa-circle-chevron-up text-emerald-600 text-lg"></i>
-        </div>
-        <div class="bg-white border border-slate-200 rounded-xl p-4 shadow-xs flex items-center justify-between">
-            <div>
-                <span class="text-[10px] font-bold text-slate-400 uppercase">Max Loss Size</span>
-                <h4 class="text-base font-extrabold text-red-700 mt-0.5">{{ "₹{:,.2f}".format(aggregate.max_loss) }}
-                </h4>
-            </div>
-            <i class="fa-solid fa-circle-chevron-down text-red-600 text-lg"></i>
-        </div>
-    </section>
-
-    <!-- AI Behavioral Analysis Panel (Initially Hidden) -->
-    <section id="ai-panel"
-        class="hidden bg-slate-900 text-slate-100 border border-slate-800 rounded-2xl p-6 md:p-8 relative overflow-hidden transition-all duration-300 animate-scale-in">
-        <div
-            class="absolute top-0 right-0 -mt-10 -mr-10 w-40 h-40 bg-blue-500/10 rounded-full blur-2xl pointer-events-none">
-        </div>
-
-        <div class="flex items-center justify-between border-b border-slate-800 pb-4 mb-6">
-            <div class="flex items-center space-x-3">
-                <span class="h-9 w-9 bg-blue-500/20 text-blue-400 rounded-lg flex items-center justify-center text-lg">
+                <button id="trigger-ai-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm rounded-xl px-5 py-3 transition-all flex items-center space-x-2 shadow-xs hover:shadow-md cursor-pointer">
                     <i class="fa-solid fa-brain"></i>
-                </span>
+                    <span>Trigger AI Behavioral Analysis</span>
+                </button>
+            </div>
+        </section>
+        
+        <!-- KPI Summary Grid -->
+        <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 fade-in-card delay-2">
+            <!-- Net P&L Card -->
+            <div class="kpi-card bg-white border border-slate-200 rounded-xl p-5 shadow-xs flex flex-col justify-between">
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Net P&L</span>
+                    <span id="pnl-icon-badge" class="h-8 w-8 rounded-lg flex items-center justify-center bg-slate-50">
+                        <i class="fa-solid fa-indian-rupee-sign"></i>
+                    </span>
+                </div>
+                <div class="mt-4">
+                    <h3 id="kpi-net-pnl" class="text-2xl font-extrabold text-slate-900">₹0.00</h3>
+                    <p id="kpi-gross-pnl" class="text-[11px] text-slate-400 font-semibold mt-1">Gross P&L: ₹0.00</p>
+                </div>
+            </div>
+
+            <!-- Win Rate Card -->
+            <div class="kpi-card bg-white border border-slate-200 rounded-xl p-5 shadow-xs flex flex-col justify-between">
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Win Rate</span>
+                    <span class="h-8 w-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
+                        <i class="fa-solid fa-trophy"></i>
+                    </span>
+                </div>
+                <div class="mt-4">
+                    <h3 id="kpi-win-rate" class="text-2xl font-extrabold text-slate-900">0%</h3>
+                    <p id="kpi-win-ratio-desc" class="text-[11px] text-slate-400 font-semibold mt-1">0 wins / 0 losses</p>
+                </div>
+            </div>
+
+            <!-- Max Drawdown Card -->
+            <div class="kpi-card bg-white border border-slate-200 rounded-xl p-5 shadow-xs flex flex-col justify-between">
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Max Drawdown</span>
+                    <span class="h-8 w-8 rounded-lg bg-red-50 text-red-600 flex items-center justify-center">
+                        <i class="fa-solid fa-circle-down"></i>
+                    </span>
+                </div>
+                <div class="mt-4">
+                    <h3 id="kpi-drawdown" class="text-2xl font-extrabold text-red-700">₹0.00</h3>
+                    <p class="text-[11px] text-slate-400 font-semibold mt-1">Peak-to-trough drop in net equity</p>
+                </div>
+            </div>
+
+            <!-- Profit Factor Card -->
+            <div class="kpi-card bg-white border border-slate-200 rounded-xl p-5 shadow-xs flex flex-col justify-between">
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Profit Factor</span>
+                    <span class="h-8 w-8 rounded-lg bg-slate-100 text-slate-700 flex items-center justify-center">
+                        <i class="fa-solid fa-scale-balanced"></i>
+                    </span>
+                </div>
+                <div class="mt-4">
+                    <h3 id="kpi-profit-factor" class="text-2xl font-extrabold text-slate-900">0.00</h3>
+                    <p id="kpi-brokerage-desc" class="text-[11px] text-slate-400 font-semibold mt-1">Total Brokerage: ₹0.00</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Additional KPI Grid -->
+        <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 fade-in-card delay-3">
+            <div class="bg-white border border-slate-200 rounded-xl p-4 shadow-xs flex items-center justify-between">
                 <div>
-                    <h2 class="text-lg font-bold text-white">Claude AI Behavioral Feedback</h2>
-                    <p class="text-xs text-slate-400 font-medium">Cognitive bias grading & trading psychology diagnostic
-                    </p>
+                    <span class="text-[10px] font-bold text-slate-400 uppercase">Avg Winning Trade</span>
+                    <h4 id="kpi-avg-win" class="text-base font-extrabold text-emerald-700 mt-0.5">₹0.00</h4>
                 </div>
+                <i class="fa-solid fa-arrow-trend-up text-emerald-500 text-lg"></i>
             </div>
-            <button id="close-ai-btn"
-                class="text-slate-400 hover:text-white p-1 hover:bg-slate-800 rounded-lg transition-colors cursor-pointer">
-                <i class="fa-solid fa-xmark text-lg"></i>
-            </button>
-        </div>
-
-        <div id="ai-loading" class="hidden py-8 text-center space-y-4">
-            <div
-                class="inline-block animate-spin rounded-full h-8 w-8 border-2 border-t-blue-500 border-r-transparent border-b-transparent border-l-transparent">
+            <div class="bg-white border border-slate-200 rounded-xl p-4 shadow-xs flex items-center justify-between">
+                <div>
+                    <span class="text-[10px] font-bold text-slate-400 uppercase">Avg Losing Trade</span>
+                    <h4 id="kpi-avg-loss" class="text-base font-extrabold text-red-700 mt-0.5">₹0.00</h4>
+                </div>
+                <i class="fa-solid fa-arrow-trend-down text-red-500 text-lg"></i>
             </div>
-            <p class="text-xs text-slate-400 font-semibold tracking-wider uppercase">Evaluating trading heuristics...
-            </p>
-        </div>
+            <div class="bg-white border border-slate-200 rounded-xl p-4 shadow-xs flex items-center justify-between">
+                <div>
+                    <span class="text-[10px] font-bold text-slate-400 uppercase">Max Win Size</span>
+                    <h4 id="kpi-max-win" class="text-base font-extrabold text-emerald-700 mt-0.5">₹0.00</h4>
+                </div>
+                <i class="fa-solid fa-circle-chevron-up text-emerald-600 text-lg"></i>
+            </div>
+            <div class="bg-white border border-slate-200 rounded-xl p-4 shadow-xs flex items-center justify-between">
+                <div>
+                    <span class="text-[10px] font-bold text-slate-400 uppercase">Max Loss Size</span>
+                    <h4 id="kpi-max-loss" class="text-base font-extrabold text-red-700 mt-0.5">₹0.00</h4>
+                </div>
+                <i class="fa-solid fa-circle-chevron-down text-red-600 text-lg"></i>
+            </div>
+        </section>
 
-        <div id="ai-content" class="space-y-6">
-            <!-- Scores -->
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div class="bg-slate-800/50 border border-slate-800 rounded-xl p-4">
-                    <div class="flex justify-between text-xs text-slate-400 font-bold uppercase mb-1">
-                        <span>Discipline Grade</span>
-                        <span id="discipline-score">0/100</span>
-                    </div>
-                    <div class="w-full bg-slate-700 h-2 rounded-full overflow-hidden">
-                        <div id="discipline-bar" class="bg-blue-500 h-full rounded-full transition-all duration-1000"
-                            style="width: 0%"></div>
-                    </div>
-                </div>
-                <div class="bg-slate-800/50 border border-slate-800 rounded-xl p-4">
-                    <div class="flex justify-between text-xs text-slate-400 font-bold uppercase mb-1">
-                        <span>Risk Controls</span>
-                        <span id="risk-score">0/100</span>
-                    </div>
-                    <div class="w-full bg-slate-700 h-2 rounded-full overflow-hidden">
-                        <div id="risk-bar" class="bg-red-500 h-full rounded-full transition-all duration-1000"
-                            style="width: 0%"></div>
+        <!-- AI Behavioral Analysis Panel (Initially Hidden) -->
+        <section id="ai-panel" class="hidden bg-slate-900 text-slate-100 border border-slate-800 rounded-2xl p-6 md:p-8 relative overflow-hidden transition-all duration-300 animate-scale-in">
+            <div class="absolute top-0 right-0 -mt-10 -mr-10 w-40 h-40 bg-blue-500/10 rounded-full blur-2xl pointer-events-none"></div>
+            
+            <div class="flex items-center justify-between border-b border-slate-800 pb-4 mb-6">
+                <div class="flex items-center space-x-3">
+                    <span class="h-9 w-9 bg-blue-500/20 text-blue-400 rounded-lg flex items-center justify-center text-lg">
+                        <i class="fa-solid fa-brain"></i>
+                    </span>
+                    <div>
+                        <h2 class="text-lg font-bold text-white">Claude AI Behavioral Feedback</h2>
+                        <p class="text-xs text-slate-400 font-medium">Cognitive bias grading & trading psychology diagnostic</p>
                     </div>
                 </div>
-                <div class="bg-slate-800/50 border border-slate-800 rounded-xl p-4">
-                    <div class="flex justify-between text-xs text-slate-400 font-bold uppercase mb-1">
-                        <span>Consistency Rate</span>
-                        <span id="consistency-score">0/100</span>
+                <button id="close-ai-btn" class="text-slate-400 hover:text-white p-1 hover:bg-slate-800 rounded-lg transition-colors cursor-pointer">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <div id="ai-loading" class="hidden py-8 text-center space-y-4">
+                <div class="inline-block animate-spin rounded-full h-8 w-8 border-2 border-t-blue-500 border-r-transparent border-b-transparent border-l-transparent"></div>
+                <p class="text-xs text-slate-400 font-semibold tracking-wider uppercase">Evaluating trading heuristics...</p>
+            </div>
+
+            <div id="ai-content" class="space-y-6">
+                <!-- Scores -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="bg-slate-800/50 border border-slate-800 rounded-xl p-4">
+                        <div class="flex justify-between text-xs text-slate-400 font-bold uppercase mb-1">
+                            <span>Discipline Grade</span>
+                            <span id="discipline-score">0/100</span>
+                        </div>
+                        <div class="w-full bg-slate-700 h-2 rounded-full overflow-hidden">
+                            <div id="discipline-bar" class="bg-blue-500 h-full rounded-full transition-all duration-1000" style="width: 0%"></div>
+                        </div>
                     </div>
-                    <div class="w-full bg-slate-700 h-2 rounded-full overflow-hidden">
-                        <div id="consistency-bar"
-                            class="bg-emerald-500 h-full rounded-full transition-all duration-1000" style="width: 0%">
+                    <div class="bg-slate-800/50 border border-slate-800 rounded-xl p-4">
+                        <div class="flex justify-between text-xs text-slate-400 font-bold uppercase mb-1">
+                            <span>Risk Controls</span>
+                            <span id="risk-score">0/100</span>
+                        </div>
+                        <div class="w-full bg-slate-700 h-2 rounded-full overflow-hidden">
+                            <div id="risk-bar" class="bg-red-500 h-full rounded-full transition-all duration-1000" style="width: 0%"></div>
+                        </div>
+                    </div>
+                    <div class="bg-slate-800/50 border border-slate-800 rounded-xl p-4">
+                        <div class="flex justify-between text-xs text-slate-400 font-bold uppercase mb-1">
+                            <span>Consistency Rate</span>
+                            <span id="consistency-score">0/100</span>
+                        </div>
+                        <div class="w-full bg-slate-700 h-2 rounded-full overflow-hidden">
+                            <div id="consistency-bar" class="bg-emerald-500 h-full rounded-full transition-all duration-1000" style="width: 0%"></div>
                         </div>
                     </div>
                 </div>
-            </div>
 
-            <!-- Main Feedback -->
-            <div class="bg-slate-800/30 border border-slate-800/80 rounded-xl p-5">
-                <h3 class="text-sm font-bold text-white mb-2 flex items-center space-x-2">
-                    <i class="fa-solid fa-comment-dots text-blue-400"></i>
-                    <span>Executive Psychological Review</span>
-                </h3>
-                <p id="overall-feedback" class="text-xs text-slate-300 leading-relaxed font-medium"></p>
-            </div>
-
-            <!-- Double Split Details -->
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <!-- Psychological Flags -->
-                <div class="space-y-3">
-                    <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center space-x-2">
-                        <i class="fa-solid fa-circle-exclamation text-red-500"></i>
-                        <span>Flagged Behaviors</span>
+                <!-- Main Feedback -->
+                <div class="bg-slate-800/30 border border-slate-800/80 rounded-xl p-5">
+                    <h3 class="text-sm font-bold text-white mb-2 flex items-center space-x-2">
+                        <i class="fa-solid fa-comment-dots text-blue-400"></i>
+                        <span>Executive Psychological Review</span>
                     </h3>
-                    <div id="flags-list" class="space-y-3"></div>
+                    <p id="overall-feedback" class="text-xs text-slate-300 leading-relaxed font-medium"></p>
                 </div>
 
-                <!-- Strategic Insights -->
-                <div class="space-y-3">
-                    <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center space-x-2">
-                        <i class="fa-solid fa-lightbulb text-yellow-500"></i>
-                        <span>Strategic Optimization Insights</span>
+                <!-- Double Split Details -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <!-- Psychological Flags -->
+                    <div class="space-y-3">
+                        <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center space-x-2">
+                            <i class="fa-solid fa-circle-exclamation text-red-500"></i>
+                            <span>Flagged Behaviors</span>
+                        </h3>
+                        <div id="flags-list" class="space-y-3"></div>
+                    </div>
+
+                    <!-- Strategic Insights -->
+                    <div class="space-y-3">
+                        <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center space-x-2">
+                            <i class="fa-solid fa-lightbulb text-yellow-500"></i>
+                            <span>Strategic Optimization Insights</span>
+                        </h3>
+                        <div id="insights-list" class="space-y-3"></div>
+                    </div>
+                </div>
+
+                <!-- Optimization Checkpoints -->
+                <div class="border-t border-slate-800 pt-5">
+                    <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3 flex items-center space-x-2">
+                        <i class="fa-solid fa-list-check text-blue-400"></i>
+                        <span>Actionable Optimization Guidelines</span>
                     </h3>
-                    <div id="insights-list" class="space-y-3"></div>
+                    <ul id="checkpoints-list" class="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs text-slate-300"></ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- Visual Charts Section 1 -->
+        <section class="grid grid-cols-1 lg:grid-cols-2 gap-8 fade-in-card delay-4">
+            <!-- Cumulative Returns -->
+            <div class="bg-white border border-slate-200 rounded-xl p-6 shadow-xs">
+                <div class="flex items-center justify-between mb-4">
+                    <div>
+                        <h3 class="text-base font-bold text-slate-900">Cumulative Net Returns</h3>
+                        <p class="text-xs text-slate-400">Equity curve showing combined net P&L over time</p>
+                    </div>
+                    <div class="h-8 w-8 bg-blue-50 text-blue-600 rounded-lg flex items-center justify-center text-sm">
+                        <i class="fa-solid fa-chart-area"></i>
+                    </div>
+                </div>
+                <div class="h-80 w-full relative">
+                    <canvas id="cumPnLChart"></canvas>
                 </div>
             </div>
 
-            <!-- Optimization Checkpoints -->
-            <div class="border-t border-slate-800 pt-5">
-                <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3 flex items-center space-x-2">
-                    <i class="fa-solid fa-list-check text-blue-400"></i>
-                    <span>Actionable Optimization Guidelines</span>
-                </h3>
-                <ul id="checkpoints-list" class="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs text-slate-300"></ul>
+            <!-- Daily returns -->
+            <div class="bg-white border border-slate-200 rounded-xl p-6 shadow-xs">
+                <div class="flex items-center justify-between mb-4">
+                    <div>
+                        <h3 class="text-base font-bold text-slate-900">Daily P&L Returns</h3>
+                        <p class="text-xs text-slate-400">Daily breakdown of net returns after brokerage</p>
+                    </div>
+                    <div class="h-8 w-8 bg-slate-100 text-slate-700 rounded-lg flex items-center justify-center text-sm">
+                        <i class="fa-solid fa-chart-bar"></i>
+                    </div>
+                </div>
+                <div class="h-80 w-full relative">
+                    <canvas id="dailyPnLChart"></canvas>
+                </div>
             </div>
-        </div>
-    </section>
+        </section>
 
-    <!-- Visual Charts Section -->
-    <section class="grid grid-cols-1 lg:grid-cols-2 gap-8 fade-in-card delay-4">
-        <!-- Cumulative Returns -->
-        <div class="bg-white border border-slate-200 rounded-xl p-6 shadow-xs">
-            <div class="flex items-center justify-between mb-4">
-                <div>
-                    <h3 class="text-base font-bold text-slate-900">Cumulative Net Returns</h3>
-                    <p class="text-xs text-slate-400">Equity curve showing combined net P&L over time</p>
+        <!-- Visual Charts Section 2 -->
+        <section class="grid grid-cols-1 lg:grid-cols-2 gap-8 fade-in-card delay-5">
+            <!-- P&L by Instrument Type -->
+            <div class="bg-white border border-slate-200 rounded-xl p-6 shadow-xs">
+                <div class="flex items-center justify-between mb-4">
+                    <div>
+                        <h3 class="text-base font-bold text-slate-900">P&L by Instrument Type</h3>
+                        <p class="text-xs text-slate-400">Distribution of realized returns across asset classes</p>
+                    </div>
+                    <div class="h-8 w-8 bg-blue-50 text-blue-600 rounded-lg flex items-center justify-center text-sm">
+                        <i class="fa-solid fa-chart-pie"></i>
+                    </div>
                 </div>
-                <div class="h-8 w-8 bg-blue-50 text-blue-600 rounded-lg flex items-center justify-center text-sm">
-                    <i class="fa-solid fa-chart-area"></i>
+                <div class="h-80 w-full relative flex items-center justify-center">
+                    <canvas id="instPnLChart"></canvas>
                 </div>
             </div>
-            <div class="h-80 w-full relative">
-                <canvas id="cumPnLChart"></canvas>
-            </div>
-        </div>
 
-        <!-- Daily returns -->
-        <div class="bg-white border border-slate-200 rounded-xl p-6 shadow-xs">
-            <div class="flex items-center justify-between mb-4">
-                <div>
-                    <h3 class="text-base font-bold text-slate-900">Daily P&L Returns</h3>
-                    <p class="text-xs text-slate-400">Daily breakdown of net returns after brokerage</p>
+            <!-- P&L by Symbol -->
+            <div class="bg-white border border-slate-200 rounded-xl p-6 shadow-xs">
+                <div class="flex items-center justify-between mb-4">
+                    <div>
+                        <h3 class="text-base font-bold text-slate-900">P&L by Contract Symbol</h3>
+                        <p class="text-xs text-slate-400">Realized returns broken down by stock or option contract</p>
+                    </div>
+                    <div class="h-8 w-8 bg-slate-100 text-slate-700 rounded-lg flex items-center justify-center text-sm">
+                        <i class="fa-solid fa-tags"></i>
+                    </div>
                 </div>
-                <div class="h-8 w-8 bg-slate-100 text-slate-700 rounded-lg flex items-center justify-center text-sm">
-                    <i class="fa-solid fa-chart-bar"></i>
+                <div class="h-80 w-full relative">
+                    <canvas id="symbolPnLChart"></canvas>
                 </div>
             </div>
-            <div class="h-80 w-full relative">
-                <canvas id="dailyPnLChart"></canvas>
-            </div>
-        </div>
-    </section>
+        </section>
 
-    <!-- Visual Charts Section 2 -->
-    <section class="grid grid-cols-1 lg:grid-cols-2 gap-8 fade-in-card delay-5">
-        <!-- P&L by Instrument Type -->
-        <div class="bg-white border border-slate-200 rounded-xl p-6 shadow-xs">
-            <div class="flex items-center justify-between mb-4">
-                <div>
-                    <h3 class="text-base font-bold text-slate-900">P&L by Instrument Type</h3>
-                    <p class="text-xs text-slate-400">Distribution of realized returns across asset classes</p>
+        <!-- Positions Listing tables -->
+        <section class="space-y-6 fade-in-card delay-6">
+            <!-- Open Positions -->
+            <div class="bg-white border border-slate-200 rounded-xl shadow-xs overflow-hidden">
+                <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+                    <div>
+                        <h3 class="text-base font-bold text-slate-900">Open Portfolio Positions</h3>
+                        <p class="text-xs text-slate-400">Trades that are currently active in the market</p>
+                    </div>
+                    <span id="open-badge" class="bg-blue-50 text-blue-700 text-xs font-bold px-2.5 py-1 rounded-full">
+                        0 Active
+                    </span>
                 </div>
-                <div class="h-8 w-8 bg-blue-50 text-blue-600 rounded-lg flex items-center justify-center text-sm">
-                    <i class="fa-solid fa-chart-pie"></i>
+                <div id="open-empty" class="hidden p-6 text-center text-sm text-slate-400 font-semibold">
+                    No active open contracts found.
+                </div>
+                <div id="open-table-container" class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse text-xs">
+                        <thead>
+                            <tr class="bg-slate-50/70 border-b border-slate-200 font-semibold uppercase tracking-wider text-slate-400 text-[10px]">
+                                <th class="p-4">Symbol</th>
+                                <th class="p-4">Instrument</th>
+                                <th class="p-4">Net Lot Size</th>
+                                <th class="p-4">Avg Entry Price</th>
+                                <th class="p-4">Total Buy Cost</th>
+                                <th class="p-4">Opening Time</th>
+                            </tr>
+                        </thead>
+                        <tbody id="open-positions-tbody" class="divide-y divide-slate-100 text-slate-700 font-medium"></tbody>
+                    </table>
                 </div>
             </div>
-            <div class="h-80 w-full relative flex items-center justify-center">
-                <canvas id="instPnLChart"></canvas>
-            </div>
-        </div>
 
-        <!-- P&L by Symbol -->
-        <div class="bg-white border border-slate-200 rounded-xl p-6 shadow-xs">
-            <div class="flex items-center justify-between mb-4">
-                <div>
-                    <h3 class="text-base font-bold text-slate-900">P&L by Contract Symbol</h3>
-                    <p class="text-xs text-slate-400">Realized returns broken down by stock or option contract</p>
+            <!-- Closed Positions -->
+            <div class="bg-white border border-slate-200 rounded-xl shadow-xs overflow-hidden">
+                <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+                    <div>
+                        <h3 class="text-base font-bold text-slate-900">Realized Closed Positions</h3>
+                        <p class="text-xs text-slate-400">Positions fully scaled out and settled</p>
+                    </div>
+                    <span id="closed-badge" class="bg-emerald-50 text-emerald-700 text-xs font-bold px-2.5 py-1 rounded-full">
+                        0 Realized
+                    </span>
                 </div>
-                <div class="h-8 w-8 bg-slate-100 text-slate-700 rounded-lg flex items-center justify-center text-sm">
-                    <i class="fa-solid fa-tags"></i>
+                <div id="closed-empty" class="hidden p-6 text-center text-sm text-slate-400 font-semibold">
+                    No closed contracts resolved yet.
+                </div>
+                <div id="closed-table-container" class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse text-xs">
+                        <thead>
+                            <tr class="bg-slate-50/70 border-b border-slate-200 font-semibold uppercase tracking-wider text-slate-400 text-[10px]">
+                                <th class="p-4">Symbol</th>
+                                <th class="p-4">Instrument</th>
+                                <th class="p-4">Total Trades</th>
+                                <th class="p-4">Avg Entry / Exit</th>
+                                <th class="p-4">Realized Net P&L</th>
+                                <th class="p-4">Duration</th>
+                            </tr>
+                        </thead>
+                        <tbody id="closed-positions-tbody" class="divide-y divide-slate-100 text-slate-700 font-medium"></tbody>
+                    </table>
                 </div>
             </div>
-            <div class="h-80 w-full relative">
-                <canvas id="symbolPnLChart"></canvas>
-            </div>
-        </div>
-    </section>
-
-    <!-- Positions Listing tables -->
-    <section class="space-y-6 fade-in-card delay-6">
-        <!-- Open Positions -->
-        <div class="bg-white border border-slate-200 rounded-xl shadow-xs overflow-hidden">
-            <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
-                <div>
-                    <h3 class="text-base font-bold text-slate-900">Open Portfolio Positions</h3>
-                    <p class="text-xs text-slate-400">Trades that are currently active in the market</p>
-                </div>
-                <span class="bg-blue-50 text-blue-700 text-xs font-bold px-2.5 py-1 rounded-full">
-                    {{ open_positions|length }} Active
-                </span>
-            </div>
-            {% if not open_positions %}
-            <div class="p-6 text-center text-sm text-slate-400 font-semibold">
-                No active open contracts found.
-            </div>
-            {% else %}
-            <div class="overflow-x-auto">
-                <table class="w-full text-left border-collapse text-xs">
-                    <thead>
-                        <tr
-                            class="bg-slate-50/70 border-b border-slate-200 font-semibold uppercase tracking-wider text-slate-400 text-[10px]">
-                            <th class="p-4">Symbol</th>
-                            <th class="p-4">Instrument</th>
-                            <th class="p-4">Net Lot Size</th>
-                            <th class="p-4">Avg Entry Price</th>
-                            <th class="p-4">Total Buy Cost</th>
-                            <th class="p-4">Opening Time</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-slate-100 text-slate-700 font-medium">
-                        {% for pos in open_positions %}
-                        <tr class="hover:bg-slate-50/50 transition-colors">
-                            <td class="p-4 text-slate-900 font-bold">{{ pos.symbol }}</td>
-                            <td class="p-4">
-                                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase
-                                    {% if pos.instrument_type == 'EQ' %}bg-slate-100 text-slate-700
-                                    {% elif pos.instrument_type == 'FUT' %}bg-blue-50 text-blue-700
-                                    {% else %}bg-purple-50 text-purple-700{% endif %}">
-                                    {{ pos.instrument_type }} {% if pos.strike_price %}({{ pos.strike_price }}){% endif
-                                    %}
-                                </span>
-                            </td>
-                            <td class="p-4">{{ pos.net_quantity }}</td>
-                            <td class="p-4">₹{{ "{:,.2f}".format(pos.entry_price) }}</td>
-                            <td class="p-4">₹{{ "{:,.2f}".format(pos.total_buy_value + pos.total_sell_value) }}</td>
-                            <td class="p-4 text-slate-400 font-semibold">{{ pos.open_time.strftime('%Y-%m-%d %H:%M:%S')
-                                }}</td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-            {% endif %}
-        </div>
-
-        <!-- Closed Positions -->
-        <div class="bg-white border border-slate-200 rounded-xl shadow-xs overflow-hidden">
-            <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
-                <div>
-                    <h3 class="text-base font-bold text-slate-900">Realized Closed Positions</h3>
-                    <p class="text-xs text-slate-400">Positions fully scaled out and settled</p>
-                </div>
-                <span class="bg-emerald-50 text-emerald-700 text-xs font-bold px-2.5 py-1 rounded-full">
-                    {{ closed_positions|length }} Realized
-                </span>
-            </div>
-            {% if not closed_positions %}
-            <div class="p-6 text-center text-sm text-slate-400 font-semibold">
-                No closed contracts resolved yet.
-            </div>
-            {% else %}
-            <div class="overflow-x-auto">
-                <table class="w-full text-left border-collapse text-xs">
-                    <thead>
-                        <tr
-                            class="bg-slate-50/70 border-b border-slate-200 font-semibold uppercase tracking-wider text-slate-400 text-[10px]">
-                            <th class="p-4">Symbol</th>
-                            <th class="p-4">Instrument</th>
-                            <th class="p-4">Total Trades</th>
-                            <th class="p-4">Avg Entry / Exit</th>
-                            <th class="p-4">Realized Net P&L</th>
-                            <th class="p-4">Duration</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-slate-100 text-slate-700 font-medium">
-                        {% for pos in closed_positions %}
-                        <tr class="hover:bg-slate-50/50 transition-colors">
-                            <td class="p-4 text-slate-900 font-bold">{{ pos.symbol }}</td>
-                            <td class="p-4">
-                                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase
-                                    {% if pos.instrument_type == 'EQ' %}bg-slate-100 text-slate-700
-                                    {% elif pos.instrument_type == 'FUT' %}bg-blue-50 text-blue-700
-                                    {% else %}bg-purple-50 text-purple-700{% endif %}">
-                                    {{ pos.instrument_type }} {% if pos.strike_price %}({{ pos.strike_price }}){% endif
-                                    %}
-                                </span>
-                            </td>
-                            <td class="p-4">{{ pos.net_quantity }}</td>
-                            <td class="p-4">
-                                <div>Entry: ₹{{ "{:,.2f}".format(pos.entry_price) }}</div>
-                                <div class="text-[10px] text-slate-400">Exit: ₹{{ "{:,.2f}".format(pos.exit_price or
-                                    0.0) }}</div>
-                            </td>
-                            <td
-                                class="p-4 font-bold {% if pos.realized_pnl >= 0 %}text-emerald-700{% else %}text-red-700{% endif %}">
-                                {{ "₹{:,.2f}".format(pos.realized_pnl) }}
-                            </td>
-                            <td class="p-4 text-slate-400 font-semibold">
-                                {% if pos.close_time %}
-                                {{ pos.open_time.strftime('%b %d') }} - {{ pos.close_time.strftime('%b %d, %H:%M') }}
-                                {% else %}
-                                -
-                                {% endif %}
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-            {% endif %}
-        </div>
-    </section>
-
+        </section>
+    </div>
 </div>
-{% endif %}
 {% endblock %}
 
 {% block scripts %}
-{% if aggregate %}
 <script>
     document.addEventListener('DOMContentLoaded', function () {
-        // Load Charts
+        const aggregateMetrics = JSON.parse(localStorage.getItem('aggregate_metrics'));
+        const tradeLogs = JSON.parse(localStorage.getItem('trade_logs'));
+
+        if (!aggregateMetrics || !tradeLogs || tradeLogs.length === 0) {
+            document.getElementById('empty-state').classList.remove('hidden');
+            document.getElementById('dashboard-content').classList.add('hidden');
+            return;
+        }
+
+        document.getElementById('empty-state').classList.add('hidden');
+        document.getElementById('dashboard-content').classList.remove('hidden');
+
+        // Formatter functions
+        function formatCurrency(val) {
+            const isNegative = val < 0;
+            const absoluteVal = Math.abs(val);
+            const formatted = '₹' + absoluteVal.toLocaleString('en-IN', { 
+                minimumFractionDigits: 2, 
+                maximumFractionDigits: 2 
+            });
+            return isNegative ? '-' + formatted : formatted;
+        }
+
+        function formatDate(dStr) {
+            if (!dStr) return '-';
+            const date = new Date(dStr);
+            return date.toLocaleString('en-US', { 
+                year: 'numeric', 
+                month: 'short', 
+                day: 'numeric', 
+                hour: '2-digit', 
+                minute: '2-digit' 
+            });
+        }
+
+        function formatDateRange(openStr, closeStr) {
+            if (!openStr) return '-';
+            const oD = new Date(openStr);
+            const oFormatted = oD.toLocaleString('en-US', { month: 'short', day: 'numeric' });
+            if (!closeStr) return oFormatted;
+            const cD = new Date(closeStr);
+            const cFormatted = cD.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+            return `${oFormatted} - ${cFormatted}`;
+        }
+
+        function getInstrumentBadgeClass(type) {
+            if (type === 'EQ') return 'bg-slate-100 text-slate-700';
+            if (type === 'FUT') return 'bg-blue-50 text-blue-700';
+            return 'bg-purple-50 text-purple-700';
+        }
+
+        // Fill KPIs
+        const agg = aggregateMetrics;
+        const netPnLEl = document.getElementById('kpi-net-pnl');
+        netPnLEl.innerText = formatCurrency(agg.net_pnl);
+        if (agg.net_pnl >= 0) {
+            netPnLEl.className = "text-2xl font-extrabold text-emerald-700";
+            document.getElementById('pnl-icon-badge').className = "h-8 w-8 rounded-lg flex items-center justify-center bg-emerald-50 text-emerald-600";
+        } else {
+            netPnLEl.className = "text-2xl font-extrabold text-red-700";
+            document.getElementById('pnl-icon-badge').className = "h-8 w-8 rounded-lg flex items-center justify-center bg-red-50 text-red-600";
+        }
+
+        document.getElementById('kpi-gross-pnl').innerText = `Gross P&L: ${formatCurrency(agg.total_pnl)}`;
+        document.getElementById('kpi-win-rate').innerText = agg.win_rate.toFixed(1) + '%';
+        document.getElementById('kpi-win-ratio-desc').innerText = `${agg.winning_trades} wins / ${agg.losing_trades} losses`;
+        document.getElementById('kpi-drawdown').innerText = formatCurrency(agg.max_drawdown);
+        document.getElementById('kpi-profit-factor').innerText = agg.profit_factor >= 999.0 ? '∞' : agg.profit_factor.toFixed(2);
+        document.getElementById('kpi-brokerage-desc').innerText = `Total Brokerage: ${formatCurrency(agg.total_brokerage)}`;
+
+        document.getElementById('kpi-avg-win').innerText = formatCurrency(agg.avg_win);
+        document.getElementById('kpi-avg-loss').innerText = formatCurrency(agg.avg_loss);
+        document.getElementById('kpi-max-win').innerText = formatCurrency(agg.max_win);
+        document.getElementById('kpi-max-loss').innerText = formatCurrency(agg.max_loss);
+
+        // Fill Positions
+        const openTable = document.getElementById('open-positions-tbody');
+        const closedTable = document.getElementById('closed-positions-tbody');
+        const openPositions = agg.positions.filter(p => p.status === 'open');
+        const closedPositions = agg.positions.filter(p => p.status === 'closed');
+
+        document.getElementById('open-badge').innerText = `${openPositions.length} Active`;
+        document.getElementById('closed-badge').innerText = `${closedPositions.length} Realized`;
+
+        if (openPositions.length === 0) {
+            document.getElementById('open-empty').classList.remove('hidden');
+            document.getElementById('open-table-container').classList.add('hidden');
+        } else {
+            document.getElementById('open-empty').classList.add('hidden');
+            document.getElementById('open-table-container').classList.remove('hidden');
+            openTable.innerHTML = '';
+            openPositions.forEach(pos => {
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-slate-50/50 transition-colors';
+                tr.innerHTML = `
+                    <td class="p-4 text-slate-900 font-bold">${pos.symbol}</td>
+                    <td class="p-4">
+                        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${getInstrumentBadgeClass(pos.instrument_type)}">
+                            ${pos.instrument_type} ${pos.strike_price ? '(' + pos.strike_price + ')' : ''}
+                        </span>
+                    </td>
+                    <td class="p-4">${pos.net_quantity}</td>
+                    <td class="p-4">${formatCurrency(pos.entry_price)}</td>
+                    <td class="p-4">${formatCurrency(pos.total_buy_value + pos.total_sell_value)}</td>
+                    <td class="p-4 text-slate-400 font-semibold">${formatDate(pos.open_time)}</td>
+                `;
+                openTable.appendChild(tr);
+            });
+        }
+
+        if (closedPositions.length === 0) {
+            document.getElementById('closed-empty').classList.remove('hidden');
+            document.getElementById('closed-table-container').classList.add('hidden');
+        } else {
+            document.getElementById('closed-empty').classList.add('hidden');
+            document.getElementById('closed-table-container').classList.remove('hidden');
+            closedTable.innerHTML = '';
+            closedPositions.forEach(pos => {
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-slate-50/50 transition-colors';
+                tr.innerHTML = `
+                    <td class="p-4 text-slate-900 font-bold">${pos.symbol}</td>
+                    <td class="p-4">
+                        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${getInstrumentBadgeClass(pos.instrument_type)}">
+                            ${pos.instrument_type} ${pos.strike_price ? '(' + pos.strike_price + ')' : ''}
+                        </span>
+                    </td>
+                    <td class="p-4">${pos.max_quantity}</td>
+                    <td class="p-4">
+                        <div>Entry: ${formatCurrency(pos.entry_price)}</div>
+                        <div class="text-[10px] text-slate-400">Exit: ${formatCurrency(pos.exit_price)}</div>
+                    </td>
+                    <td class="p-4 font-bold ${pos.realized_pnl >= 0 ? 'text-emerald-700' : 'text-red-700'}">
+                        ${formatCurrency(pos.realized_pnl)}
+                    </td>
+                    <td class="p-4 text-slate-400 font-semibold">${formatDateRange(pos.open_time, pos.close_time)}</td>
+                `;
+                closedTable.appendChild(tr);
+            });
+        }
+
+        // Charts configuration
+        const labels = agg.daily_pnl.map(d => d.date.split('T')[0]);
+        const dailyNet = agg.daily_pnl.map(d => d.net_pnl);
+        const cumNet = [];
+        let cumSum = 0.0;
+        dailyNet.forEach(val => {
+            cumSum += val;
+            cumNet.push(cumSum);
+        });
+
+        // Chart 1: Cumulative equity curve
         const ctxCum = document.getElementById('cumPnLChart').getContext('2d');
+        new Chart(ctxCum, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Net Returns (₹)',
+                    data: cumNet,
+                    borderColor: '#2563eb',
+                    backgroundColor: 'rgba(37, 99, 235, 0.05)',
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { grid: { display: false } },
+                    y: { 
+                        grid: { color: '#f1f5f9' },
+                        ticks: { callback: function(value) { return '₹' + value.toLocaleString(); } }
+                    }
+                }
+            }
+        });
+
+        // Chart 2: Daily net bar returns
         const ctxDaily = document.getElementById('dailyPnLChart').getContext('2d');
-
-        const labels = {{ chart_labels | tojson
-    }};
-    const dailyNet = {{ chart_daily_net | tojson }};
-    const cumNet = {{ chart_cum_net | tojson }};
-
-    // Cumulative Equity Curve
-    new Chart(ctxCum, {
-        type: 'line',
-        data: {
-            labels: labels,
-            datasets: [{
-                label: 'Net Returns (₹)',
-                data: cumNet,
-                borderColor: '#2563eb',
-                backgroundColor: 'rgba(37, 99, 235, 0.05)',
-                borderWidth: 2,
-                fill: true,
-                tension: 0.2
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: { display: false }
+        new Chart(ctxDaily, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Net P&L (₹)',
+                    data: dailyNet,
+                    backgroundColor: dailyNet.map(val => val >= 0 ? '#10b981' : '#ef4444'),
+                    borderRadius: 4
+                }]
             },
-            scales: {
-                x: { grid: { display: false } },
-                y: {
-                    grid: { color: '#f1f5f9' },
-                    ticks: {
-                        callback: function (value) { return '₹' + value.toLocaleString(); }
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { grid: { display: false } },
+                    y: { 
+                        grid: { color: '#f1f5f9' },
+                        ticks: { callback: function(value) { return '₹' + value.toLocaleString(); } }
                     }
                 }
             }
-        }
-    });
+        });
 
-    // Daily Returns Bar Chart
-    new Chart(ctxDaily, {
-        type: 'bar',
-        data: {
-            labels: labels,
-            datasets: [{
-                label: 'Net P&L (₹)',
-                data: dailyNet,
-                backgroundColor: dailyNet.map(val => val >= 0 ? '#10b981' : '#ef4444'),
-                borderRadius: 4
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: { display: false }
+        // Chart 3: Instrument breakdown doughnut
+        const ctxInst = document.getElementById('instPnLChart').getContext('2d');
+        const instPnL = {};
+        closedPositions.forEach(p => {
+            const itype = p.instrument_type || 'EQ';
+            instPnL[itype] = (instPnL[itype] || 0.0) + p.realized_pnl;
+        });
+        const instLabels = Object.keys(instPnL);
+        const instValues = Object.values(instPnL);
+
+        new Chart(ctxInst, {
+            type: 'doughnut',
+            data: {
+                labels: instLabels,
+                datasets: [{
+                    data: instValues,
+                    backgroundColor: ['#2563eb', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#64748b'],
+                    borderWidth: 2
+                }]
             },
-            scales: {
-                x: { grid: { display: false } },
-                y: {
-                    grid: { color: '#f1f5f9' },
-                    ticks: {
-                        callback: function (value) { return '₹' + value.toLocaleString(); }
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'right',
+                        labels: { boxWidth: 12, font: { size: 11 } }
                     }
                 }
             }
-        }
-    });
+        });
 
-    // Instrument P&L Chart (Doughnut)
-    const ctxInst = document.getElementById('instPnLChart').getContext('2d');
-    const instLabels = {{ inst_labels | tojson if inst_labels else[] }};
-    const instValues = {{ inst_values | tojson if inst_values else[] }};
+        // Chart 4: Symbol breakdown horizontal bar chart
+        const ctxSym = document.getElementById('symbolPnLChart').getContext('2d');
+        const symbolPnL = {};
+        closedPositions.forEach(p => {
+            const sym = p.symbol;
+            symbolPnL[sym] = (symbolPnL[sym] || 0.0) + p.realized_pnl;
+        });
+        const sortedSyms = Object.entries(symbolPnL).sort((a, b) => a[1] - b[1]);
+        const symLabels = sortedSyms.map(x => x[0]);
+        const symValues = sortedSyms.map(x => x[1]);
 
-    new Chart(ctxInst, {
-        type: 'doughnut',
-        data: {
-            labels: instLabels,
-            datasets: [{
-                data: instValues,
-                backgroundColor: [
-                    '#2563eb', // Blue
-                    '#10b981', // Emerald
-                    '#f59e0b', // Amber
-                    '#8b5cf6', // Violet
-                    '#ec4899', // Pink
-                    '#64748b'  // Slate
-                ],
-                borderWidth: 2
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    position: 'right',
-                    labels: {
-                        boxWidth: 12,
-                        font: { size: 11 }
-                    }
+        new Chart(ctxSym, {
+            type: 'bar',
+            data: {
+                labels: symLabels,
+                datasets: [{
+                    label: 'Realized P&L (₹)',
+                    data: symValues,
+                    backgroundColor: symValues.map(val => val >= 0 ? '#10b981' : '#ef4444'),
+                    borderRadius: 4
+                }]
+            },
+            options: {
+                indexAxis: 'y',
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: {
+                        grid: { color: '#f1f5f9' },
+                        ticks: { callback: function(value) { return '₹' + value.toLocaleString(); } }
+                    },
+                    y: { grid: { display: false } }
                 }
             }
-        }
-    });
+        });
 
-    // Symbol P&L Chart (Horizontal Bar Chart)
-    const ctxSym = document.getElementById('symbolPnLChart').getContext('2d');
-    const symLabels = {{ sym_labels | tojson if sym_labels else[] }};
-    const symValues = {{ sym_values | tojson if sym_values else[] }};
+        // AI Behavioral analysis drawer hooks
+        const triggerBtn = document.getElementById('trigger-ai-btn');
+        const closeBtn = document.getElementById('close-ai-btn');
+        const aiPanel = document.getElementById('ai-panel');
+        const aiLoading = document.getElementById('ai-loading');
+        const aiContent = document.getElementById('ai-content');
 
-    new Chart(ctxSym, {
-        type: 'bar',
-        data: {
-            labels: symLabels,
-            datasets: [{
-                label: 'Realized P&L (₹)',
-                data: symValues,
-                backgroundColor: symValues.map(val => val >= 0 ? '#10b981' : '#ef4444'),
-                borderRadius: 4
-            }]
-        },
-        options: {
-            indexAxis: 'y', // Horizontal bars
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: { display: false }
-            },
-            scales: {
-                x: {
-                    grid: { color: '#f1f5f9' },
-                    ticks: {
-                        callback: function (value) { return '₹' + value.toLocaleString(); }
+        triggerBtn.addEventListener('click', function () {
+            aiPanel.classList.remove('hidden');
+            aiPanel.scrollIntoView({ behavior: 'smooth' });
+
+            aiLoading.classList.remove('hidden');
+            aiContent.classList.add('hidden');
+
+            fetch('/api/llm/advanced-analysis', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    trades: tradeLogs,
+                    positions: agg.positions,
+                    metrics: {
+                        total_trades: agg.total_trades,
+                        win_rate: agg.win_rate,
+                        total_pnl: agg.total_pnl,
+                        net_pnl: agg.net_pnl,
+                        max_drawdown: agg.max_drawdown,
+                        profit_factor: agg.profit_factor
                     }
-                },
-                y: {
-                    grid: { display: false }
-                }
-            }
-        }
-    });
-
-    // AI Behavioral Analysis Drawer logic
-    const triggerBtn = document.getElementById('trigger-ai-btn');
-    const closeBtn = document.getElementById('close-ai-btn');
-    const aiPanel = document.getElementById('ai-panel');
-    const aiLoading = document.getElementById('ai-loading');
-    const aiContent = document.getElementById('ai-content');
-
-    triggerBtn.addEventListener('click', function () {
-        // Scroll to AI panel smoothly
-        aiPanel.classList.remove('hidden');
-        aiPanel.scrollIntoView({ behavior: 'smooth' });
-
-        // Show loading
-        aiLoading.classList.remove('hidden');
-        aiContent.classList.add('hidden');
-
-        // POST to analysis route
-        fetch('/api/llm/advanced-analysis', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                system_prompt: ""
+                })
             })
-        })
             .then(res => res.json())
             .then(data => {
                 aiLoading.classList.add('hidden');
@@ -712,8 +746,7 @@
 
                 if (data.status === 'success') {
                     const analysis = data.llm_analysis;
-
-                    // Scores
+                    
                     document.getElementById('discipline-score').innerText = analysis.grading_and_feedback.discipline_score + '/100';
                     document.getElementById('discipline-bar').style.width = analysis.grading_and_feedback.discipline_score + '%';
 
@@ -723,10 +756,8 @@
                     document.getElementById('consistency-score').innerText = analysis.grading_and_feedback.consistency_score + '/100';
                     document.getElementById('consistency-bar').style.width = analysis.grading_and_feedback.consistency_score + '%';
 
-                    // Feedback
                     document.getElementById('overall-feedback').innerText = analysis.grading_and_feedback.overall_feedback;
 
-                    // Flags list
                     const flagsList = document.getElementById('flags-list');
                     flagsList.innerHTML = '';
                     analysis.psychological_flags.forEach(flag => {
@@ -744,7 +775,6 @@
                         flagsList.appendChild(flagEl);
                     });
 
-                    // Insights list
                     const insightsList = document.getElementById('insights-list');
                     insightsList.innerHTML = '';
                     analysis.strategic_insights.forEach(insight => {
@@ -761,7 +791,6 @@
                         insightsList.appendChild(insightEl);
                     });
 
-                    // Checkpoints list
                     const checkpointsList = document.getElementById('checkpoints-list');
                     checkpointsList.innerHTML = '';
                     analysis.grading_and_feedback.actionable_optimization_points.forEach(point => {
@@ -779,12 +808,11 @@
                 aiLoading.classList.add('hidden');
                 console.error("AI analysis error:", err);
             });
-    });
+        });
 
-    closeBtn.addEventListener('click', function () {
-        aiPanel.classList.add('hidden');
-    });
+        closeBtn.addEventListener('click', function () {
+            aiPanel.classList.add('hidden');
+        });
     });
 </script>
-{% endif %}
 {% endblock %}
