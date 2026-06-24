@@ -125,25 +125,43 @@
                 </h3>
 
                 <p class="text-xs text-slate-500 font-medium leading-relaxed">
-                    Uploaded CSV files are parsed directly in memory. No file is stored on disk in this version of the
-                    pipeline.
+                    Uploaded CSV files are parsed directly in memory. Data is persisted to the database and cleared on new file uploads.
                 </p>
 
                 <ul class="space-y-3 pt-2">
                     <li class="flex items-start space-x-3 text-xs font-medium text-slate-600">
                         <i class="fa-solid fa-check text-emerald-600 mt-0.5"></i>
-                        <span><strong>Input:</strong> one or many CSV files</span>
+                        <span><strong>Overwrite strategy:</strong> replaces previous logs</span>
                     </li>
                     <li class="flex items-start space-x-3 text-xs font-medium text-slate-600">
                         <i class="fa-solid fa-check text-emerald-600 mt-0.5"></i>
-                        <span><strong>Backend:</strong> direct CSV parsing using Flask + pandas</span>
-                    </li>
-                    <li class="flex items-start space-x-3 text-xs font-medium text-slate-600">
-                        <i class="fa-solid fa-check text-emerald-600 mt-0.5"></i>
-                        <span><strong>Storage:</strong> no raw CSV file is saved right now</span>
+                        <span><strong>Backend:</strong> Flask-SQLAlchemy + MySQL</span>
                     </li>
                 </ul>
             </div>
+
+            {% if uploads %}
+            <div class="bg-white border border-slate-200 rounded-xl p-6 shadow-xs space-y-4">
+                <h3 class="text-sm font-bold text-slate-900 flex items-center space-x-2">
+                    <i class="fa-solid fa-clock-rotate-left text-blue-600"></i>
+                    <span>Active Session Upload History</span>
+                </h3>
+                <div class="space-y-3 max-h-60 overflow-y-auto pr-1">
+                    {% for upload in uploads %}
+                    <div class="p-3 bg-slate-50 border border-slate-150 rounded-lg text-xs space-y-1">
+                        <div class="font-bold text-slate-800 truncate">{{ upload.filename }}</div>
+                        {% if upload.file_label %}
+                        <div class="text-[10px] text-blue-600 font-semibold bg-blue-50 px-1.5 py-0.5 rounded-sm inline-block">Label: {{ upload.file_label }}</div>
+                        {% endif %}
+                        <div class="flex justify-between text-[10px] text-slate-400 font-medium">
+                            <span>Rows: {{ upload.row_count }}</span>
+                            <span>{{ upload.uploaded_at.strftime('%H:%M:%S') }}</span>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
         </div>
     </div>
 

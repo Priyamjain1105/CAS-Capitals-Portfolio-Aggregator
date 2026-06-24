@@ -1,0 +1,195 @@
+{% extends "base.html" %}
+
+{% block title %}Pyramiding Analysis - CAS Capitals Trade Journal{% endblock %}
+
+{% block head_content %}
+<style>
+    .position-row {
+        cursor: pointer;
+    }
+    .timeline-item::before {
+        content: '';
+        position: absolute;
+        left: 20px;
+        top: 32px;
+        bottom: -20px;
+        width: 2px;
+        background-color: #e2e8f0;
+    }
+    .timeline-item:last-child::before {
+        display: none;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="space-y-8">
+    <!-- Header -->
+    <section class="flex flex-col space-y-1">
+        <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Position Layering</span>
+        <h1 class="text-2xl md:text-3xl font-bold text-slate-900 flex items-center space-x-3">
+            <i class="fa-solid fa-layer-group text-blue-600"></i>
+            <span>Pyramiding sequencing tracker</span>
+        </h1>
+        <p class="text-sm text-slate-500 font-medium max-w-3xl">
+            Analyze execution chronology. View how entry orders scale into positions and track weighted average costs across accumulation runs.
+        </p>
+    </section>
+
+    {% if not positions_with_trades %}
+    <!-- Empty State -->
+    <div class="bg-white border border-slate-200 rounded-2xl p-12 text-center max-w-xl mx-auto space-y-6 shadow-xs">
+        <div class="h-16 w-16 bg-blue-50 rounded-full flex items-center justify-center text-blue-600 mx-auto">
+            <i class="fa-solid fa-layer-group text-2xl"></i>
+        </div>
+        <div class="space-y-2">
+            <h2 class="text-lg font-bold text-slate-900">No positions calculated</h2>
+            <p class="text-sm text-slate-500 font-medium leading-relaxed">
+                Before exploring chronological average cost progression, upload raw trade exports from your dashboard.
+            </p>
+        </div>
+        <div>
+            <a href="{{ url_for('upload') }}" class="inline-flex items-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl px-5 py-3 transition-all">
+                <i class="fa-solid fa-upload"></i>
+                <span>Upload Trades CSV</span>
+            </a>
+        </div>
+    </div>
+    {% else %}
+    
+    <!-- Positions List Container -->
+    <section class="space-y-4">
+        {% for item in positions_with_trades %}
+        {% set pos = item.position %}
+        <div class="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-xs hover:border-blue-300 transition-colors">
+            
+            <!-- Accordion Header -->
+            <div class="p-5 flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0 position-row hover:bg-slate-50/50" onclick="toggleAccordion('steps-{{ pos.id }}', 'icon-{{ pos.id }}')">
+                <div class="flex items-center space-x-4">
+                    <span class="h-10 w-10 rounded-lg flex items-center justify-center font-bold text-sm
+                        {% if pos.status == 'open' %}bg-blue-50 text-blue-700{% else %}bg-slate-100 text-slate-700{% endif %}">
+                        <i class="fa-solid fa-folder-open text-xs"></i>
+                    </span>
+                    <div>
+                        <div class="flex items-center space-x-2">
+                            <h3 class="text-base font-extrabold text-slate-900">{{ pos.symbol }}</h3>
+                            <span class="px-2 py-0.5 rounded-full text-[9px] font-extrabold uppercase
+                                {% if pos.status == 'open' %}bg-blue-100 text-blue-700{% else %}bg-slate-200 text-slate-600{% endif %}">
+                                {{ pos.status }}
+                            </span>
+                        </div>
+                        <p class="text-xs text-slate-400 font-medium mt-0.5">
+                            Opened: {{ pos.open_time.strftime('%b %d, %Y at %H:%M') }}
+                        </p>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-2 text-xs md:text-right font-medium">
+                    <div>
+                        <span class="text-[10px] text-slate-400 font-bold uppercase block">Instrument</span>
+                        <span class="text-slate-800 font-bold uppercase">{{ pos.instrument_type }}</span>
+                    </div>
+                    <div>
+                        <span class="text-[10px] text-slate-400 font-bold uppercase block">Total Lot Size</span>
+                        <span class="text-slate-800 font-bold">{{ pos.net_quantity if pos.net_quantity != 0 else pos.max_quantity }}</span>
+                    </div>
+                    <div>
+                        <span class="text-[10px] text-slate-400 font-bold uppercase block">Avg Price</span>
+                        <span class="text-slate-800 font-bold">
+                            ₹{{ "{:,.2f}".format(pos.entry_price) if pos.net_quantity >= 0 else "{:,.2f}".format(pos.exit_price or 0.0) }}
+                        </span>
+                    </div>
+                    <div>
+                        <span class="text-[10px] text-slate-400 font-bold uppercase block">Realized P&L</span>
+                        <span class="font-extrabold {% if pos.realized_pnl >= 0 %}text-emerald-700{% else %}text-red-700{% endif %}">
+                            {{ "₹{:,.2f}".format(pos.realized_pnl) }}
+                        </span>
+                    </div>
+                </div>
+
+                <div class="flex items-center justify-end text-slate-400 md:pl-4">
+                    <i id="icon-{{ pos.id }}" class="fa-solid fa-chevron-down transition-transform duration-200"></i>
+                </div>
+            </div>
+
+            <!-- Accordion Expandable Content -->
+            <div id="steps-{{ pos.id }}" class="hidden border-t border-slate-100 bg-slate-50/50 p-6 space-y-6">
+                <h4 class="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center space-x-2">
+                    <i class="fa-solid fa-route text-blue-600"></i>
+                    <span>Order execution path timeline</span>
+                </h4>
+                
+                <div class="relative pl-4 space-y-6">
+                    {% for step in item.steps %}
+                    {% set trade = step.trade %}
+                    <div class="timeline-item relative flex items-start space-x-4 pl-8">
+                        
+                        <!-- Timeline Dot Icon -->
+                        <span class="absolute left-0 top-1 h-10 w-10 rounded-full flex items-center justify-center border z-10 bg-white
+                            {% if trade.trade_type == 'buy' %}border-emerald-200 text-emerald-600{% else %}border-red-200 text-red-600{% endif %}">
+                            {% if trade.trade_type == 'buy' %}
+                            <i class="fa-solid fa-arrow-trend-up text-xs"></i>
+                            {% else %}
+                            <i class="fa-solid fa-arrow-trend-down text-xs"></i>
+                            {% endif %}
+                        </span>
+
+                        <!-- Sizing Progression Log Card -->
+                        <div class="flex-grow bg-white border border-slate-200 rounded-xl p-4 shadow-2xs grid grid-cols-1 md:grid-cols-4 gap-4 items-center">
+                            <div>
+                                <span class="text-[9px] text-slate-400 font-bold uppercase block">Order execution time</span>
+                                <span class="text-slate-800 text-xs font-bold">{{ trade.order_execution_time.strftime('%Y-%m-%d %H:%M:%S') }}</span>
+                            </div>
+                            
+                            <div>
+                                <span class="text-[9px] text-slate-400 font-bold uppercase block">Action & Sizing</span>
+                                <div class="flex items-center space-x-1.5 mt-0.5">
+                                    <span class="px-1.5 py-0.5 rounded-md text-[9px] font-extrabold uppercase tracking-wide
+                                        {% if trade.trade_type == 'buy' %}bg-emerald-50 text-emerald-700{% else %}bg-red-50 text-red-700{% endif %}">
+                                        {{ trade.trade_type }}
+                                    </span>
+                                    <span class="text-xs font-bold text-slate-700">{{ trade.quantity }} @ ₹{{ "{:,.2f}".format(trade.price) }}</span>
+                                </div>
+                            </div>
+
+                            <div>
+                                <span class="text-[9px] text-slate-400 font-bold uppercase block">Running position size</span>
+                                <span class="text-slate-700 text-xs font-bold">{{ step.running_qty }} unit(s)</span>
+                            </div>
+
+                            <div>
+                                <span class="text-[9px] text-slate-400 font-bold uppercase block">Weighted average cost</span>
+                                <span class="text-slate-900 text-xs font-extrabold">₹{{ "{:,.2f}".format(step.avg_cost) }}</span>
+                            </div>
+                        </div>
+
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+        </div>
+        {% endfor %}
+    </section>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function toggleAccordion(contentId, iconId) {
+        const content = document.getElementById(contentId);
+        const icon = document.getElementById(iconId);
+        
+        if (content.classList.contains('hidden')) {
+            content.classList.remove('hidden');
+            icon.classList.remove('fa-chevron-down');
+            icon.classList.add('fa-chevron-up');
+        } else {
+            content.classList.add('hidden');
+            icon.classList.remove('fa-chevron-up');
+            icon.classList.add('fa-chevron-down');
+        }
+    }
+</script>
+{% endblock %}

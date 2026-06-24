@@ -1,0 +1,612 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - CAS Capitals Trade Journal{% endblock %}
+
+{% block head_content %}
+<!-- Include Chart.js via CDN -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+    .kpi-card {
+        transition: all 0.2s ease-in-out;
+    }
+    .kpi-card:hover {
+        transform: translateY(-2px);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="space-y-8">
+    <!-- Title Section -->
+    <section class="flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0">
+        <div>
+            <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Analytical Core</span>
+            <h1 class="text-2xl md:text-3xl font-bold text-slate-900 flex items-center space-x-3">
+                <i class="fa-solid fa-chart-line text-blue-600"></i>
+                <span>Trade Journal Dashboard</span>
+            </h1>
+            <p class="text-sm text-slate-500 font-medium mt-1">
+                Real-time parsed metrics, execution win-rates, and risk analytics for the active session.
+            </p>
+        </div>
+        
+        <div>
+            {% if aggregate %}
+            <button id="trigger-ai-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm rounded-xl px-5 py-3 transition-all flex items-center space-x-2 shadow-xs hover:shadow-md cursor-pointer">
+                <i class="fa-solid fa-brain"></i>
+                <span>Trigger AI Behavioral Analysis</span>
+            </button>
+            {% endif %}
+        </div>
+    </section>
+
+    {% if not aggregate %}
+    <!-- Empty State -->
+    <div class="bg-white border border-slate-200 rounded-2xl p-12 text-center max-w-xl mx-auto space-y-6 shadow-xs">
+        <div class="h-16 w-16 bg-blue-50 rounded-full flex items-center justify-center text-blue-600 mx-auto">
+            <i class="fa-solid fa-file-csv text-2xl"></i>
+        </div>
+        <div class="space-y-2">
+            <h2 class="text-lg font-bold text-slate-900">No trading logs uploaded</h2>
+            <p class="text-sm text-slate-500 font-medium leading-relaxed">
+                Before generating the metrics dashboard, you need to import your Zerodha Console CSV file exports.
+            </p>
+        </div>
+        <div>
+            <a href="{{ url_for('upload') }}" class="inline-flex items-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl px-5 py-3 transition-all">
+                <i class="fa-solid fa-upload"></i>
+                <span>Upload Trades CSV</span>
+            </a>
+        </div>
+    </div>
+    {% else %}
+    
+    <!-- KPI Summary Grid -->
+    <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <!-- Net P&L Card -->
+        <div class="kpi-card bg-white border border-slate-200 rounded-xl p-5 shadow-xs flex flex-col justify-between">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Net P&L</span>
+                <span class="h-8 w-8 rounded-lg flex items-center justify-center {% if aggregate.net_pnl >= 0 %}bg-emerald-50 text-emerald-600{% else %}bg-red-50 text-red-600{% endif %}">
+                    <i class="fa-solid fa-indian-rupee-sign"></i>
+                </span>
+            </div>
+            <div class="mt-4">
+                <h3 class="text-2xl font-extrabold {% if aggregate.net_pnl >= 0 %}text-emerald-700{% else %}text-red-700{% endif %}">
+                    {{ "₹{:,.2f}".format(aggregate.net_pnl) }}
+                </h3>
+                <p class="text-[11px] text-slate-400 font-semibold mt-1">
+                    Gross P&L: {{ "₹{:,.2f}".format(aggregate.total_pnl) }}
+                </p>
+            </div>
+        </div>
+
+        <!-- Win Rate Card -->
+        <div class="kpi-card bg-white border border-slate-200 rounded-xl p-5 shadow-xs flex flex-col justify-between">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Win Rate</span>
+                <span class="h-8 w-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
+                    <i class="fa-solid fa-trophy"></i>
+                </span>
+            </div>
+            <div class="mt-4">
+                <h3 class="text-2xl font-extrabold text-slate-900">
+                    {{ "{:.1f}%".format(aggregate.win_rate) }}
+                </h3>
+                <p class="text-[11px] text-slate-400 font-semibold mt-1">
+                    {{ aggregate.winning_trades }} wins / {{ aggregate.losing_trades }} losses
+                </p>
+            </div>
+        </div>
+
+        <!-- Max Drawdown Card -->
+        <div class="kpi-card bg-white border border-slate-200 rounded-xl p-5 shadow-xs flex flex-col justify-between">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Max Drawdown</span>
+                <span class="h-8 w-8 rounded-lg bg-red-50 text-red-600 flex items-center justify-center">
+                    <i class="fa-solid fa-circle-down"></i>
+                </span>
+            </div>
+            <div class="mt-4">
+                <h3 class="text-2xl font-extrabold text-red-700">
+                    {{ "₹{:,.2f}".format(aggregate.max_drawdown) }}
+                </h3>
+                <p class="text-[11px] text-slate-400 font-semibold mt-1">
+                    Peak-to-trough drop in net equity
+                </p>
+            </div>
+        </div>
+
+        <!-- Profit Factor Card -->
+        <div class="kpi-card bg-white border border-slate-200 rounded-xl p-5 shadow-xs flex flex-col justify-between">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Profit Factor</span>
+                <span class="h-8 w-8 rounded-lg bg-slate-100 text-slate-700 flex items-center justify-center">
+                    <i class="fa-solid fa-scale-balanced"></i>
+                </span>
+            </div>
+            <div class="mt-4">
+                <h3 class="text-2xl font-extrabold text-slate-900">
+                    {% if aggregate.profit_factor >= 999.0 %}
+                    &infin;
+                    {% else %}
+                    {{ "{:.2f}".format(aggregate.profit_factor) }}
+                    {% endif %}
+                </h3>
+                <p class="text-[11px] text-slate-400 font-semibold mt-1">
+                    Total Brokerage: {{ "₹{:,.2f}".format(aggregate.total_brokerage) }}
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Additional KPI Grid -->
+    <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div class="bg-white border border-slate-200 rounded-xl p-4 shadow-xs flex items-center justify-between">
+            <div>
+                <span class="text-[10px] font-bold text-slate-400 uppercase">Avg Winning Trade</span>
+                <h4 class="text-base font-extrabold text-emerald-700 mt-0.5">{{ "₹{:,.2f}".format(aggregate.avg_win) }}</h4>
+            </div>
+            <i class="fa-solid fa-arrow-trend-up text-emerald-500 text-lg"></i>
+        </div>
+        <div class="bg-white border border-slate-200 rounded-xl p-4 shadow-xs flex items-center justify-between">
+            <div>
+                <span class="text-[10px] font-bold text-slate-400 uppercase">Avg Losing Trade</span>
+                <h4 class="text-base font-extrabold text-red-700 mt-0.5">{{ "₹{:,.2f}".format(aggregate.avg_loss) }}</h4>
+            </div>
+            <i class="fa-solid fa-arrow-trend-down text-red-500 text-lg"></i>
+        </div>
+        <div class="bg-white border border-slate-200 rounded-xl p-4 shadow-xs flex items-center justify-between">
+            <div>
+                <span class="text-[10px] font-bold text-slate-400 uppercase">Max Win Size</span>
+                <h4 class="text-base font-extrabold text-emerald-700 mt-0.5">{{ "₹{:,.2f}".format(aggregate.max_win) }}</h4>
+            </div>
+            <i class="fa-solid fa-circle-chevron-up text-emerald-600 text-lg"></i>
+        </div>
+        <div class="bg-white border border-slate-200 rounded-xl p-4 shadow-xs flex items-center justify-between">
+            <div>
+                <span class="text-[10px] font-bold text-slate-400 uppercase">Max Loss Size</span>
+                <h4 class="text-base font-extrabold text-red-700 mt-0.5">{{ "₹{:,.2f}".format(aggregate.max_loss) }}</h4>
+            </div>
+            <i class="fa-solid fa-circle-chevron-down text-red-600 text-lg"></i>
+        </div>
+    </section>
+
+    <!-- AI Behavioral Analysis Panel (Initially Hidden) -->
+    <section id="ai-panel" class="hidden bg-slate-900 text-slate-100 border border-slate-800 rounded-2xl p-6 md:p-8 relative overflow-hidden transition-all duration-300">
+        <div class="absolute top-0 right-0 -mt-10 -mr-10 w-40 h-40 bg-blue-500/10 rounded-full blur-2xl pointer-events-none"></div>
+        
+        <div class="flex items-center justify-between border-b border-slate-800 pb-4 mb-6">
+            <div class="flex items-center space-x-3">
+                <span class="h-9 w-9 bg-blue-500/20 text-blue-400 rounded-lg flex items-center justify-center text-lg">
+                    <i class="fa-solid fa-brain"></i>
+                </span>
+                <div>
+                    <h2 class="text-lg font-bold text-white">Claude AI Behavioral Feedback</h2>
+                    <p class="text-xs text-slate-400 font-medium">Cognitive bias grading & trading psychology diagnostic</p>
+                </div>
+            </div>
+            <button id="close-ai-btn" class="text-slate-400 hover:text-white p-1 hover:bg-slate-800 rounded-lg transition-colors cursor-pointer">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+        </div>
+
+        <div id="ai-loading" class="hidden py-8 text-center space-y-4">
+            <div class="inline-block animate-spin rounded-full h-8 w-8 border-2 border-t-blue-500 border-r-transparent border-b-transparent border-l-transparent"></div>
+            <p class="text-xs text-slate-400 font-semibold tracking-wider uppercase">Evaluating trading heuristics...</p>
+        </div>
+
+        <div id="ai-content" class="space-y-6">
+            <!-- Scores -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="bg-slate-800/50 border border-slate-800 rounded-xl p-4">
+                    <div class="flex justify-between text-xs text-slate-400 font-bold uppercase mb-1">
+                        <span>Discipline Grade</span>
+                        <span id="discipline-score">0/100</span>
+                    </div>
+                    <div class="w-full bg-slate-700 h-2 rounded-full overflow-hidden">
+                        <div id="discipline-bar" class="bg-blue-500 h-full rounded-full transition-all duration-1000" style="width: 0%"></div>
+                    </div>
+                </div>
+                <div class="bg-slate-800/50 border border-slate-800 rounded-xl p-4">
+                    <div class="flex justify-between text-xs text-slate-400 font-bold uppercase mb-1">
+                        <span>Risk Controls</span>
+                        <span id="risk-score">0/100</span>
+                    </div>
+                    <div class="w-full bg-slate-700 h-2 rounded-full overflow-hidden">
+                        <div id="risk-bar" class="bg-red-500 h-full rounded-full transition-all duration-1000" style="width: 0%"></div>
+                    </div>
+                </div>
+                <div class="bg-slate-800/50 border border-slate-800 rounded-xl p-4">
+                    <div class="flex justify-between text-xs text-slate-400 font-bold uppercase mb-1">
+                        <span>Consistency Rate</span>
+                        <span id="consistency-score">0/100</span>
+                    </div>
+                    <div class="w-full bg-slate-700 h-2 rounded-full overflow-hidden">
+                        <div id="consistency-bar" class="bg-emerald-500 h-full rounded-full transition-all duration-1000" style="width: 0%"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Main Feedback -->
+            <div class="bg-slate-800/30 border border-slate-800/80 rounded-xl p-5">
+                <h3 class="text-sm font-bold text-white mb-2 flex items-center space-x-2">
+                    <i class="fa-solid fa-comment-dots text-blue-400"></i>
+                    <span>Executive Psychological Review</span>
+                </h3>
+                <p id="overall-feedback" class="text-xs text-slate-300 leading-relaxed font-medium"></p>
+            </div>
+
+            <!-- Double Split Details -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- Psychological Flags -->
+                <div class="space-y-3">
+                    <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center space-x-2">
+                        <i class="fa-solid fa-circle-exclamation text-red-500"></i>
+                        <span>Flagged Behaviors</span>
+                    </h3>
+                    <div id="flags-list" class="space-y-3"></div>
+                </div>
+
+                <!-- Strategic Insights -->
+                <div class="space-y-3">
+                    <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center space-x-2">
+                        <i class="fa-solid fa-lightbulb text-yellow-500"></i>
+                        <span>Strategic Optimization Insights</span>
+                    </h3>
+                    <div id="insights-list" class="space-y-3"></div>
+                </div>
+            </div>
+
+            <!-- Optimization Checkpoints -->
+            <div class="border-t border-slate-800 pt-5">
+                <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3 flex items-center space-x-2">
+                    <i class="fa-solid fa-list-check text-blue-400"></i>
+                    <span>Actionable Optimization Guidelines</span>
+                </h3>
+                <ul id="checkpoints-list" class="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs text-slate-300"></ul>
+            </div>
+        </div>
+    </section>
+
+    <!-- Visual Charts Section -->
+    <section class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <!-- Cumulative Returns -->
+        <div class="bg-white border border-slate-200 rounded-xl p-6 shadow-xs">
+            <div class="flex items-center justify-between mb-4">
+                <div>
+                    <h3 class="text-base font-bold text-slate-900">Cumulative Net Returns</h3>
+                    <p class="text-xs text-slate-400">Equity curve showing combined net P&L over time</p>
+                </div>
+                <div class="h-8 w-8 bg-blue-50 text-blue-600 rounded-lg flex items-center justify-center text-sm">
+                    <i class="fa-solid fa-chart-area"></i>
+                </div>
+            </div>
+            <div class="h-80 w-full relative">
+                <canvas id="cumPnLChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Daily returns -->
+        <div class="bg-white border border-slate-200 rounded-xl p-6 shadow-xs">
+            <div class="flex items-center justify-between mb-4">
+                <div>
+                    <h3 class="text-base font-bold text-slate-900">Daily P&L Returns</h3>
+                    <p class="text-xs text-slate-400">Daily breakdown of net returns after brokerage</p>
+                </div>
+                <div class="h-8 w-8 bg-slate-100 text-slate-700 rounded-lg flex items-center justify-center text-sm">
+                    <i class="fa-solid fa-chart-bar"></i>
+                </div>
+            </div>
+            <div class="h-80 w-full relative">
+                <canvas id="dailyPnLChart"></canvas>
+            </div>
+        </div>
+    </section>
+
+    <!-- Positions Listing tables -->
+    <section class="space-y-6">
+        <!-- Open Positions -->
+        <div class="bg-white border border-slate-200 rounded-xl shadow-xs overflow-hidden">
+            <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+                <div>
+                    <h3 class="text-base font-bold text-slate-900">Open Portfolio Positions</h3>
+                    <p class="text-xs text-slate-400">Trades that are currently active in the market</p>
+                </div>
+                <span class="bg-blue-50 text-blue-700 text-xs font-bold px-2.5 py-1 rounded-full">
+                    {{ open_positions|length }} Active
+                </span>
+            </div>
+            {% if not open_positions %}
+            <div class="p-6 text-center text-sm text-slate-400 font-semibold">
+                No active open contracts found.
+            </div>
+            {% else %}
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse text-xs">
+                    <thead>
+                        <tr class="bg-slate-50/70 border-b border-slate-200 font-semibold uppercase tracking-wider text-slate-400 text-[10px]">
+                            <th class="p-4">Symbol</th>
+                            <th class="p-4">Instrument</th>
+                            <th class="p-4">Net Lot Size</th>
+                            <th class="p-4">Avg Entry Price</th>
+                            <th class="p-4">Total Buy Cost</th>
+                            <th class="p-4">Opening Time</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100 text-slate-700 font-medium">
+                        {% for pos in open_positions %}
+                        <tr class="hover:bg-slate-50/50 transition-colors">
+                            <td class="p-4 text-slate-900 font-bold">{{ pos.symbol }}</td>
+                            <td class="p-4">
+                                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase
+                                    {% if pos.instrument_type == 'EQ' %}bg-slate-100 text-slate-700
+                                    {% elif pos.instrument_type == 'FUT' %}bg-blue-50 text-blue-700
+                                    {% else %}bg-purple-50 text-purple-700{% endif %}">
+                                    {{ pos.instrument_type }} {% if pos.strike_price %}({{ pos.strike_price }}){% endif %}
+                                </span>
+                            </td>
+                            <td class="p-4">{{ pos.net_quantity }}</td>
+                            <td class="p-4">₹{{ "{:,.2f}".format(pos.entry_price) }}</td>
+                            <td class="p-4">₹{{ "{:,.2f}".format(pos.total_buy_value + pos.total_sell_value) }}</td>
+                            <td class="p-4 text-slate-400 font-semibold">{{ pos.open_time.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Closed Positions -->
+        <div class="bg-white border border-slate-200 rounded-xl shadow-xs overflow-hidden">
+            <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+                <div>
+                    <h3 class="text-base font-bold text-slate-900">Realized Closed Positions</h3>
+                    <p class="text-xs text-slate-400">Positions fully scaled out and settled</p>
+                </div>
+                <span class="bg-emerald-50 text-emerald-700 text-xs font-bold px-2.5 py-1 rounded-full">
+                    {{ closed_positions|length }} Realized
+                </span>
+            </div>
+            {% if not closed_positions %}
+            <div class="p-6 text-center text-sm text-slate-400 font-semibold">
+                No closed contracts resolved yet.
+            </div>
+            {% else %}
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse text-xs">
+                    <thead>
+                        <tr class="bg-slate-50/70 border-b border-slate-200 font-semibold uppercase tracking-wider text-slate-400 text-[10px]">
+                            <th class="p-4">Symbol</th>
+                            <th class="p-4">Instrument</th>
+                            <th class="p-4">Total Trades</th>
+                            <th class="p-4">Avg Entry / Exit</th>
+                            <th class="p-4">Realized Net P&L</th>
+                            <th class="p-4">Duration</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100 text-slate-700 font-medium">
+                        {% for pos in closed_positions %}
+                        <tr class="hover:bg-slate-50/50 transition-colors">
+                            <td class="p-4 text-slate-900 font-bold">{{ pos.symbol }}</td>
+                            <td class="p-4">
+                                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase
+                                    {% if pos.instrument_type == 'EQ' %}bg-slate-100 text-slate-700
+                                    {% elif pos.instrument_type == 'FUT' %}bg-blue-50 text-blue-700
+                                    {% else %}bg-purple-50 text-purple-700{% endif %}">
+                                    {{ pos.instrument_type }} {% if pos.strike_price %}({{ pos.strike_price }}){% endif %}
+                                </span>
+                            </td>
+                            <td class="p-4">{{ pos.net_quantity }}</td>
+                            <td class="p-4">
+                                <div>Entry: ₹{{ "{:,.2f}".format(pos.entry_price) }}</div>
+                                <div class="text-[10px] text-slate-400">Exit: ₹{{ "{:,.2f}".format(pos.exit_price or 0.0) }}</div>
+                            </td>
+                            <td class="p-4 font-bold {% if pos.realized_pnl >= 0 %}text-emerald-700{% else %}text-red-700{% endif %}">
+                                {{ "₹{:,.2f}".format(pos.realized_pnl) }}
+                            </td>
+                            <td class="p-4 text-slate-400 font-semibold">
+                                {% if pos.close_time %}
+                                {{ pos.open_time.strftime('%b %d') }} - {{ pos.close_time.strftime('%b %d, %H:%M') }}
+                                {% else %}
+                                -
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% endif %}
+        </div>
+    </section>
+    
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+{% if aggregate %}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        // Load Charts
+        const ctxCum = document.getElementById('cumPnLChart').getContext('2d');
+        const ctxDaily = document.getElementById('dailyPnLChart').getContext('2d');
+        
+        const labels = {{ chart_labels | tojson }};
+        const dailyNet = {{ chart_daily_net | tojson }};
+        const cumNet = {{ chart_cum_net | tojson }};
+
+        // Cumulative Equity Curve
+        new Chart(ctxCum, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Net Returns (₹)',
+                    data: cumNet,
+                    borderColor: '#2563eb',
+                    backgroundColor: 'rgba(37, 99, 235, 0.05)',
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    x: { grid: { display: false } },
+                    y: { 
+                        grid: { color: '#f1f5f9' },
+                        ticks: {
+                            callback: function(value) { return '₹' + value.toLocaleString(); }
+                        }
+                    }
+                }
+            }
+        });
+
+        // Daily Returns Bar Chart
+        new Chart(ctxDaily, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Net P&L (₹)',
+                    data: dailyNet,
+                    backgroundColor: dailyNet.map(val => val >= 0 ? '#10b981' : '#ef4444'),
+                    borderRadius: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    x: { grid: { display: false } },
+                    y: { 
+                        grid: { color: '#f1f5f9' },
+                        ticks: {
+                            callback: function(value) { return '₹' + value.toLocaleString(); }
+                        }
+                    }
+                }
+            }
+        });
+
+        // AI Behavioral Analysis Drawer logic
+        const triggerBtn = document.getElementById('trigger-ai-btn');
+        const closeBtn = document.getElementById('close-ai-btn');
+        const aiPanel = document.getElementById('ai-panel');
+        const aiLoading = document.getElementById('ai-loading');
+        const aiContent = document.getElementById('ai-content');
+
+        triggerBtn.addEventListener('click', function () {
+            // Scroll to AI panel smoothly
+            aiPanel.classList.remove('hidden');
+            aiPanel.scrollIntoView({ behavior: 'smooth' });
+            
+            // Show loading
+            aiLoading.classList.remove('hidden');
+            aiContent.classList.add('hidden');
+
+            // POST to analysis route
+            fetch('/api/llm/advanced-analysis', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    system_prompt: ""
+                })
+            })
+            .then(res => res.json())
+            .then(data => {
+                aiLoading.classList.add('hidden');
+                aiContent.classList.remove('hidden');
+
+                if (data.status === 'success') {
+                    const analysis = data.llm_analysis;
+                    
+                    // Scores
+                    document.getElementById('discipline-score').innerText = analysis.grading_and_feedback.discipline_score + '/100';
+                    document.getElementById('discipline-bar').style.width = analysis.grading_and_feedback.discipline_score + '%';
+
+                    document.getElementById('risk-score').innerText = analysis.grading_and_feedback.risk_management_score + '/100';
+                    document.getElementById('risk-bar').style.width = analysis.grading_and_feedback.risk_management_score + '%';
+
+                    document.getElementById('consistency-score').innerText = analysis.grading_and_feedback.consistency_score + '/100';
+                    document.getElementById('consistency-bar').style.width = analysis.grading_and_feedback.consistency_score + '%';
+
+                    // Feedback
+                    document.getElementById('overall-feedback').innerText = analysis.grading_and_feedback.overall_feedback;
+
+                    // Flags list
+                    const flagsList = document.getElementById('flags-list');
+                    flagsList.innerHTML = '';
+                    analysis.psychological_flags.forEach(flag => {
+                        const bgClass = flag.severity === 'High' ? 'bg-red-950/40 border-red-800 text-red-400' : 'bg-yellow-950/40 border-yellow-800 text-yellow-400';
+                        const flagEl = document.createElement('div');
+                        flagEl.className = `p-3 rounded-xl border ${bgClass}`;
+                        flagEl.innerHTML = `
+                            <div class="flex items-center justify-between">
+                                <span class="font-bold text-xs">${flag.flag}</span>
+                                <span class="text-[10px] px-1.5 py-0.5 rounded-md font-bold uppercase tracking-wider bg-slate-800">${flag.severity}</span>
+                            </div>
+                            <p class="text-[11px] text-slate-300 mt-1 leading-relaxed font-medium">${flag.description}</p>
+                            <div class="text-[10px] text-slate-400 mt-1.5 italic">Evidence: ${flag.evidence}</div>
+                        `;
+                        flagsList.appendChild(flagEl);
+                    });
+
+                    // Insights list
+                    const insightsList = document.getElementById('insights-list');
+                    insightsList.innerHTML = '';
+                    analysis.strategic_insights.forEach(insight => {
+                        const insightEl = document.createElement('div');
+                        insightEl.className = 'p-3 rounded-xl border border-slate-800 bg-slate-800/40';
+                        insightEl.innerHTML = `
+                            <span class="font-bold text-xs text-white block">${insight.insight_type}</span>
+                            <p class="text-[11px] text-slate-300 mt-1 leading-relaxed font-medium">${insight.description}</p>
+                            <div class="text-[10px] text-blue-400 mt-1.5 flex items-center space-x-1">
+                                <i class="fa-solid fa-circle-play text-[8px]"></i>
+                                <span>Action: ${insight.actionable_advice}</span>
+                            </div>
+                        `;
+                        insightsList.appendChild(insightEl);
+                    });
+
+                    // Checkpoints list
+                    const checkpointsList = document.getElementById('checkpoints-list');
+                    checkpointsList.innerHTML = '';
+                    analysis.grading_and_feedback.actionable_optimization_points.forEach(point => {
+                        const checkpointEl = document.createElement('li');
+                        checkpointEl.className = 'flex items-start space-x-2 bg-slate-800/30 p-2.5 rounded-lg border border-slate-850';
+                        checkpointEl.innerHTML = `
+                            <i class="fa-solid fa-square-check text-blue-400 mt-0.5"></i>
+                            <span>${point}</span>
+                        `;
+                        checkpointsList.appendChild(checkpointEl);
+                    });
+                }
+            })
+            .catch(err => {
+                aiLoading.classList.add('hidden');
+                console.error("AI analysis error:", err);
+            });
+        });
+
+        closeBtn.addEventListener('click', function () {
+            aiPanel.classList.add('hidden');
+        });
+    });
+</script>
+{% endif %}
+{% endblock %}

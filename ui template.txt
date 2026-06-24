@@ -1,0 +1,25 @@
+Act as an expert Frontend Developer and UI/UX Designer. Build a Flask template that extends "base.html". Maintain strict visual harmony with the established design system outlined below:
+
+### 1. Design System & Style Guidelines
+- Framework: Tailwind CSS (v4)
+- Theme/Vibe: Modern, premium Fintech SaaS Dashboard (clean, professional, light mode).
+- Typography: Clean sans-serif font stack. Use strong font-weight hierarchies (`font-bold text-slate-900` vs `font-medium text-slate-500`).
+- Color Palette:
+  - Backgrounds: Primary app background is `bg-slate-50`. Card backgrounds are always `bg-white`.
+  - Borders: Clean, subtle separators using `border-slate-200` or `border-slate-100`.
+  - Accents: Main brand interaction/highlight color is Royal Blue (`text-blue-600`, `bg-blue-600`).
+  - System Colors: Success/Profits (`bg-emerald-50`, `text-emerald-700`). Errors/Risks (`bg-red-50`, `text-red-700`).
+
+### 2. Layout Structure & UI Components
+- Page Wrapper: Enclose page components within logical, semantic sections. Ensure whitespace breathing room using `p-6` or `p-8` on white cards.
+- Layout Strategy: For analytical pages, prioritize an Executive Summary KPI Grid at the top, followed by 2-column split layouts (charts/breakdowns) or 1-column responsive tables below.
+- Component Design:
+  - Cards: Use `bg-white border border-slate-200 rounded-xl p-6 shadow-xs` for data containers.
+  - Hover States: Interactive items should smoothly transform using `transition-all duration-200 hover:shadow-md` or `hover:bg-slate-50`.
+  - Icons: Use FontAwesome 6 icons (`fa-solid`) paired natively beside text headings (`space-x-2` or `space-x-3`) for intuitive navigation cues.
+
+### 3. UX Best Practices (Fintech Focus)
+- Scannability: Use bold text for key metrics. Use clear labels and subtle metadata text below primary figures (`text-xs text-slate-400`).
+- Responsive Behavior: Every single page component must be responsive. 
+  - Grids must stack on mobile and expand on desktop (e.g., `grid grid-cols-1 md:grid-cols-3 gap-6`).
+  - Tables must wrap inside an overflow container (`div class="overflow-x-auto"`) to prevent mobile layout breaking.
