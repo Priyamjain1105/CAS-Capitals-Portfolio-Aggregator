@@ -1,7 +1,7 @@
 import pandas as pd
-from flask import request, redirect, url_for, flash, render_template
+from flask import request, render_template
 from models import Person
-import pandas
+
 ALLOWED_EXTENSIONS = {"csv"}
 
 
@@ -17,7 +17,7 @@ def parse_csv_file(file_storage):
     file_storage.stream.seek(0)
     df = pd.read_csv(file_storage)
 
-    # replace NaN with None for cleaner downstream processing
+    # Replace NaN with None for cleaner downstream processing
     df = df.where(pd.notnull(df), None)
 
     return df.to_dict(orient="records")
@@ -38,14 +38,20 @@ def register_routes(app, db):
         """
         Parse one or many uploaded CSV files directly in memory.
         No file is saved to disk.
+        No flash/session usage.
         """
+        file_label = request.form.get('file_label', '').strip()
+        files = request.files.getlist("files")
 
-        file_label = request.form.get('file_label', '').strip()  # optional
-        files = request.files.getlist("files")   # IMPORTANT: input name in HTML must be "files"
+        print("DEBUG request.files:", request.files)
+        print("DEBUG files received:", [f.filename for f in files if f and f.filename])
 
         if not files or all(f.filename == '' for f in files):
-            flash("Please select at least one CSV file.", "error")
-            return redirect(url_for('upload'))
+            return render_template(
+                "upload.html",
+                error_message="Please select at least one CSV file.",
+                file_label=file_label
+            )
 
         parsed_payload = []
         total_rows = 0
@@ -56,35 +62,37 @@ def register_routes(app, db):
                     continue
 
                 if not allowed_file(file.filename):
-                    flash(f'File "{file.filename}" is not a CSV.', 'error')
-                    return redirect(url_for('upload'))
+                    return render_template(
+                        "upload.html",
+                        error_message=f'"{file.filename}" is not a CSV file.',
+                        file_label=file_label
+                    )
 
                 rows = parse_csv_file(file)
 
                 parsed_payload.append({
                     "source_file": file.filename,
                     "row_count": len(rows),
-                    "rows": rows
+                    "rows": rows[:5]   # preview first 5 rows only
                 })
 
                 total_rows += len(rows)
 
-            flash(
-                f"Successfully parsed {len(parsed_payload)} CSV file(s) with {total_rows} total row(s).",
-                "success"
-            )
-
-            # For now just render the upload page again and show summary
             return render_template(
                 "upload.html",
+                success_message=f"Successfully parsed {len(parsed_payload)} CSV file(s) with {total_rows} total row(s).",
                 parsed_payload=parsed_payload,
                 total_rows=total_rows,
                 file_label=file_label
             )
 
         except Exception as err:
-            flash(f"CSV parsing failed: {str(err)}", "error")
-            return redirect(url_for('upload'))
+            print("CSV parsing error:", err)
+            return render_template(
+                "upload.html",
+                error_message=f"CSV parsing failed: {str(err)}",
+                file_label=file_label
+            )
 
     @app.route('/pyramiding', methods=['GET'])
     def pyramiding():

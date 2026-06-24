@@ -75,6 +75,7 @@
                     <!-- Multi-file Dropzone -->
                     <div id="dropzone"
                         class="border-2 border-dashed border-slate-200 rounded-xl p-8 text-center bg-slate-50/60 hover:bg-slate-50 hover:border-blue-400 transition-all cursor-pointer flex flex-col items-center justify-center space-y-4 group">
+
                         <input type="file" id="file_input" name="files" accept=".csv,text/csv" class="hidden" multiple
                             required />
 
@@ -160,24 +161,47 @@
             </span>
         </div>
 
-        <div class="overflow-x-auto">
-            <table class="w-full text-left text-sm text-slate-600 border-collapse">
-                <thead>
-                    <tr
-                        class="bg-slate-50/70 border-b border-slate-200 text-xs font-semibold uppercase tracking-wider text-slate-400">
-                        <th class="p-4">Source File</th>
-                        <th class="p-4">Parsed Rows</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-slate-100">
-                    {% for item in parsed_payload %}
-                    <tr class="hover:bg-slate-50/50 transition-colors">
-                        <td class="p-4 text-xs font-medium text-slate-900">{{ item.source_file }}</td>
-                        <td class="p-4 text-xs text-slate-600">{{ item.row_count }}</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+        <div class="p-6 space-y-8">
+            {% for item in parsed_payload %}
+            <div class="border border-slate-200 rounded-xl overflow-hidden">
+                <div class="px-4 py-3 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-semibold text-slate-900">{{ item.source_file }}</p>
+                        <p class="text-xs text-slate-500">
+                            Previewing {{ item.rows|length }} row(s) • Total parsed rows: {{ item.row_count }}
+                        </p>
+                    </div>
+                </div>
+
+                {% if item.rows and item.rows|length > 0 %}
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-sm text-slate-600 border-collapse">
+                        <thead>
+                            <tr
+                                class="bg-slate-50/70 border-b border-slate-200 text-xs font-semibold uppercase tracking-wider text-slate-400">
+                                {% for key in item.rows[0].keys() %}
+                                <th class="p-4">{{ key }}</th>
+                                {% endfor %}
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100">
+                            {% for row in item.rows %}
+                            <tr class="hover:bg-slate-50/50 transition-colors">
+                                {% for value in row.values() %}
+                                <td class="p-4 text-xs text-slate-700">{{ value }}</td>
+                                {% endfor %}
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="p-4 text-sm text-slate-500">
+                    No rows found in this CSV.
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
         </div>
     </div>
     {% endif %}
@@ -199,6 +223,7 @@
         ['dragenter', 'dragover'].forEach(eventName => {
             dropzone.addEventListener(eventName, (e) => {
                 e.preventDefault();
+                e.stopPropagation();
                 dropzone.classList.add('drag-over');
             });
         });
@@ -206,6 +231,7 @@
         ['dragleave', 'drop'].forEach(eventName => {
             dropzone.addEventListener(eventName, (e) => {
                 e.preventDefault();
+                e.stopPropagation();
                 dropzone.classList.remove('drag-over');
             });
         });
@@ -225,7 +251,10 @@
 
         fileInput.addEventListener('change', function () {
             const files = this.files;
-            if (!files.length) return;
+            if (!files.length) {
+                resetFileDisplay();
+                return;
+            }
 
             if (!allCsv(files)) {
                 alert('Only CSV files are allowed.');
